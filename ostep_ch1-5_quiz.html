@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OSTEP Chapters 1–5 Interactive Quiz</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f6f7fb; color: #111; }
+  header { background: #111827; color: #fff; padding: 18px 18px; }
+  header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+  header p { margin: 6px 0 0; font-size: 13px; opacity: 0.9; line-height: 1.3; }
+  main { max-width: 980px; margin: 18px auto; padding: 0 14px 40px; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; margin: 12px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #e5e7eb; background: #f9fafb; }
+  .muted { color: #6b7280; font-size: 13px; }
+  .qtitle { font-weight: 700; margin: 0 0 8px; }
+  .qtext { margin: 0 0 10px; line-height: 1.35; }
+  .choices label { display: block; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; margin: 7px 0; cursor: pointer; }
+  .choices input { margin-right: 8px; }
+  .short input { width: 100%; max-width: 520px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; }
+  .btn { padding: 9px 12px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; font-size: 13px; }
+  .btn.primary { background: #111827; color: #fff; border-color: #111827; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .feedback { margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid #e5e7eb; display: none; }
+  .ok { background: #ecfdf5; border-color: #a7f3d0; }
+  .bad { background: #fef2f2; border-color: #fecaca; }
+  details { margin-top: 8px; }
+  details summary { cursor: pointer; color: #111827; font-weight: 600; }
+  .footer { margin-top: 10px; font-size: 12px; color: #6b7280; line-height: 1.4; }
+  code.kbd { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>OSTEP (Operating Systems: Three Easy Pieces) — Chapters 1–5 Quiz</h1>
+  <p>
+    Covers: Ch1 Dialogue on the Book · Ch2 Introduction to OS · Ch3 Dialogue on Virtualization · Ch4 Process abstraction · Ch5 UNIX Process API.
+    <br/>Tip: Answer first, then hit <strong>Check</strong>. Explanations are brief.
+  </p>
+</header>
+
+<main>
+  <div class="card">
+    <div class="row">
+      <span class="pill"><strong>Score:</strong> <span id="score">0</span>/<span id="total">0</span></span>
+      <span class="pill"><strong>Checked:</strong> <span id="checked">0</span></span>
+      <button class="btn primary" id="checkAll">Check All</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+    <p class="muted" style="margin-top:10px">
+      Short-answer questions are graded with lenient matching (case-insensitive; ignores extra spaces and punctuation).
+    </p>
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="card footer">
+    <div><strong>How to use this:</strong> Open this file in any browser. It runs fully offline.</div>
+    <div style="margin-top:6px">
+      If you want, I can also generate a “hard mode” version (more code-trace and scenario questions).
+    </div>
+  </div>
+</main>
+
+<script>
+const normalize = (s) => (s || "")
+  .toLowerCase()
+  .replace(/[^a-z0-9\\s]/g, " ")
+  .replace(/\\s+/g, " ")
+  .trim();
+
+const questions = [
+  // Ch1–3
+  {
+    id: 1,
+    chapter: "Ch1–3",
+    type: "mc",
+    prompt: "The book’s “three easy pieces” refer to three major themes. Which set is correct?",
+    choices: [
+      "virtualization, compilation, networking",
+      "virtualization, concurrency, persistence",
+      "processes, files, threads",
+      "scheduling, paging, sockets"
+    ],
+    answer: 1,
+    explanation: "The book is organized around virtualization, concurrency, and persistence."
+  },
+  {
+    id: 2,
+    chapter: "Ch2",
+    type: "mc",
+    prompt: "In the (simplified) Von Neumann model, a running program mostly does what, over and over?",
+    choices: [
+      "Fetch an instruction, decode it, execute it, then move to the next",
+      "Allocate memory, free memory, then exit",
+      "Open a file, write it, then close it",
+      "Spawn threads, join threads, then sleep"
+    ],
+    answer: 0,
+    explanation: "The introductory chapter describes the basic fetch–decode–execute cycle."
+  },
+  {
+    id: 3,
+    chapter: "Ch2–3",
+    type: "short",
+    prompt: "Define virtualization (in one sentence).",
+    answers: [
+      "the os takes a physical resource and transforms it into a more general powerful and easy to use virtual form",
+      "turning a physical resource into a virtual abstraction that is easier to use",
+      "presenting an illusion of many resources from fewer physical resources"
+    ],
+    explanation: "Virtualization is the OS turning physical resources (CPU, memory, disk) into useful virtual abstractions."
+  },
+  {
+    id: 4,
+    chapter: "Ch3",
+    type: "mc",
+    prompt: "In the ‘peach’ dialogue, what is the key trick that makes one physical peach feel like many peaches?",
+    choices: [
+      "Everyone eats at the same time",
+      "You repeatedly switch who gets the peach while others are ‘napping’",
+      "You copy the peach perfectly",
+      "You hide the peach and serve apples"
+    ],
+    answer: 1,
+    explanation: "The dialogue explains time-sharing: snatch the peach and give it to someone else when others aren’t using it."
+  },
+  {
+    id: 5,
+    chapter: "Ch2",
+    type: "mc",
+    prompt: "When four CPU-hog programs seem to run ‘at the same time’ on one CPU, what is the OS creating?",
+    choices: [
+      "A large number of virtual CPUs (an illusion via time-sharing)",
+      "Four physical CPUs",
+      "A single process with four threads",
+      "A faster clock rate"
+    ],
+    answer: 0,
+    explanation: "The OS time-shares a CPU to create the illusion of many virtual CPUs."
+  },
+  {
+    id: 6,
+    chapter: "Ch2",
+    type: "mc",
+    prompt: "Two processes both print the same pointer value (e.g., 0x200000) after malloc(), yet don’t interfere with each other. Why?",
+    choices: [
+      "malloc() always returns physical addresses",
+      "Each process has its own private virtual address space mapped onto shared physical memory",
+      "The CPU caches prevent interference",
+      "They actually do interfere, but the print output hides it"
+    ],
+    answer: 1,
+    explanation: "Virtual memory lets identical virtual addresses refer to different physical locations per process."
+  },
+  {
+    id: 7,
+    chapter: "Ch2",
+    type: "mc",
+    prompt: "In the threaded counter example, why can the final counter value be less than expected?",
+    choices: [
+      "The compiler deletes increments on purpose",
+      "counter++ is not atomic; it’s a load, add, store that can interleave across threads",
+      "pthread_join() resets the counter",
+      "printf() changes the counter"
+    ],
+    answer: 1,
+    explanation: "The increment compiles to multiple instructions; interleavings cause lost updates."
+  },
+
+  // Ch4 Process abstraction
+  {
+    id: 8,
+    chapter: "Ch4",
+    type: "short",
+    prompt: "In this book, a process is informally defined as a ________ ________.",
+    answers: ["running program"],
+    explanation: "Ch4 defines a process (informally) as a running program."
+  },
+  {
+    id: 9,
+    chapter: "Ch4",
+    type: "mc",
+    prompt: "Which item is definitely part of a process’s machine state?",
+    choices: [
+      "The program counter (instruction pointer)",
+      "The color of the terminal theme",
+      "The CPU’s manufacturing date",
+      "The router’s IP address"
+    ],
+    answer: 0,
+    explanation: "Machine state includes registers like the PC and SP, plus memory and I/O state."
+  },
+  {
+    id: 10,
+    chapter: "Ch4",
+    type: "mc",
+    prompt: "A process is waiting for a disk read to complete. It is most likely in which simplified state?",
+    choices: ["Running", "Ready", "Blocked", "Zombie"],
+    answer: 2,
+    explanation: "Blocked processes are waiting for an event (e.g., I/O completion)."
+  },
+  {
+    id: 11,
+    chapter: "Ch4",
+    type: "mc",
+    prompt: "What does it mean to ‘schedule’ a process?",
+    choices: [
+      "Move it from running to ready",
+      "Move it from ready to running",
+      "Move it from blocked to zombie",
+      "Move it from ready to blocked"
+    ],
+    answer: 1,
+    explanation: "Scheduling is selecting a ready process to run; descheduling is moving running → ready."
+  },
+  {
+    id: 12,
+    chapter: "Ch4",
+    type: "short",
+    prompt: "Name the OS design idea that separates ‘which’ decisions from ‘how’ mechanisms.",
+    answers: [
+      "separate policy and mechanism",
+      "policy mechanism separation",
+      "policy and mechanism separation"
+    ],
+    explanation: "Ch4 highlights the ‘separate policy and mechanism’ paradigm."
+  },
+  {
+    id: 13,
+    chapter: "Ch4",
+    type: "mc",
+    prompt: "Which is the best example of a mechanism (not a policy) in CPU virtualization?",
+    choices: [
+      "Context switching",
+      "Choosing shortest-job-first",
+      "Choosing round-robin time slice length",
+      "Choosing which process is most interactive"
+    ],
+    answer: 0,
+    explanation: "Mechanisms are low-level capabilities (e.g., context switch); policies choose which process to run."
+  },
+  {
+    id: 14,
+    chapter: "Ch4",
+    type: "mc",
+    prompt: "The process list is primarily used to:",
+    choices: [
+      "Track running/ready/blocked processes and related per-process info",
+      "Store source code for all programs",
+      "Allocate disk blocks",
+      "Generate random numbers for scheduling"
+    ],
+    answer: 0,
+    explanation: "The process list (task list) tracks processes; entries are often called PCBs."
+  },
+
+  // Ch5 Process API
+  {
+    id: 15,
+    chapter: "Ch5",
+    type: "mc",
+    prompt: "In UNIX, fork() returns what value in the child process (on success)?",
+    choices: ["The parent’s PID", "0", "-1", "The child’s PID"],
+    answer: 1,
+    explanation: "The child sees 0; the parent sees the child’s PID."
+  },
+  {
+    id: 16,
+    chapter: "Ch5",
+    type: "mc",
+    prompt: "What is the main effect of exec() on success?",
+    choices: [
+      "Creates a new process while keeping the old program running",
+      "Replaces the current process image with a new program and does not return",
+      "Pauses the process until a signal arrives",
+      "Duplicates the current address space"
+    ],
+    answer: 1,
+    explanation: "exec() overwrites the current program’s code/data with the new executable; a successful exec() doesn’t return."
+  },
+  {
+    id: 17,
+    chapter: "Ch5",
+    type: "short",
+    prompt: "Why is the separation of fork() and exec() useful for building a shell? (short phrase)",
+    answers: [
+      "it lets the shell run code between fork and exec to change the child environment",
+      "allows setup like i o redirection between fork and exec",
+      "lets the shell modify file descriptors before exec",
+      "enables redirection and pipes without changing the program"
+    ],
+    explanation: "The shell can change the child’s environment (e.g., redirection) after fork() and before exec()."
+  },
+  {
+    id: 18,
+    chapter: "Ch5",
+    type: "mc",
+    prompt: "In the redirection example, why does open() likely take over STDOUT after close(STDOUT_FILENO)?",
+    choices: [
+      "UNIX assigns the lowest available file descriptor number, and stdout becomes free",
+      "open() always returns descriptor 1",
+      "close() flushes the disk cache",
+      "execvp() forces stdout to redirect"
+    ],
+    answer: 0,
+    explanation: "UNIX searches for the lowest free FD; after closing stdout (FD 1), the next open() will usually reuse it."
+  },
+  {
+    id: 19,
+    chapter: "Ch5",
+    type: "mc",
+    prompt: "With wait() added in the parent after fork(), why does the child’s print reliably happen before the parent’s?",
+    choices: [
+      "wait() blocks the parent until the child exits",
+      "wait() speeds up the child",
+      "wait() disables interrupts",
+      "wait() forces deterministic scheduling forever"
+    ],
+    answer: 0,
+    explanation: "If the parent runs first, it calls wait() and pauses until the child is done."
+  },
+  {
+    id: 20,
+    chapter: "Ch5",
+    type: "short",
+    prompt: "Name one UNIX signal and its common terminal shortcut from the chapter (e.g., SIGINT + Ctrl-C).",
+    answers: ["sigint ctrl c", "sigint control c", "sigtstp ctrl z", "sigtstp control z"],
+    explanation: "The chapter mentions Ctrl-C → SIGINT and Ctrl-Z → SIGTSTP."
+  }
+];
+
+function render() {
+  const quiz = document.getElementById("quiz");
+  quiz.innerHTML = "";
+  document.getElementById("total").textContent = questions.length.toString();
+
+  for (const q of questions) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.qid = q.id;
+
+    const title = document.createElement("p");
+    title.className = "qtitle";
+    title.textContent = `Q${q.id}.`;
+    card.appendChild(title);
+
+    const meta = document.createElement("div");
+    meta.className = "row";
+    meta.innerHTML = `<span class="pill">${q.chapter}</span><span class="pill">${q.type === "mc" ? "Multiple choice" : "Short answer"}</span>`;
+    card.appendChild(meta);
+
+    const p = document.createElement("p");
+    p.className = "qtext";
+    p.textContent = q.prompt;
+    card.appendChild(p);
+
+    if (q.type === "mc") {
+      const choices = document.createElement("div");
+      choices.className = "choices";
+      q.choices.forEach((c, idx) => {
+        const id = `q${q.id}_c${idx}`;
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="radio" name="q${q.id}" id="${id}" value="${idx}"> ${c}`;
+        choices.appendChild(label);
+      });
+      card.appendChild(choices);
+    } else {
+      const div = document.createElement("div");
+      div.className = "short";
+      div.innerHTML = `<input type="text" name="q${q.id}" placeholder="Type your answer…">`;
+      card.appendChild(div);
+    }
+
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.marginTop = "10px";
+
+    const btn = document.createElement("button");
+    btn.className = "btn primary";
+    btn.textContent = "Check";
+    btn.addEventListener("click", () => checkOne(q.id));
+    row.appendChild(btn);
+
+    const btnExplain = document.createElement("button");
+    btnExplain.className = "btn";
+    btnExplain.textContent = "Show explanation";
+    btnExplain.addEventListener("click", () => {
+      const det = card.querySelector("details");
+      det.open = !det.open;
+    });
+    row.appendChild(btnExplain);
+
+    card.appendChild(row);
+
+    const fb = document.createElement("div");
+    fb.className = "feedback";
+    fb.id = `fb_${q.id}`;
+    card.appendChild(fb);
+
+    const det = document.createElement("details");
+    det.innerHTML = `<summary>Explanation</summary><div class="muted" style="margin-top:6px">${q.explanation}</div>`;
+    card.appendChild(det);
+
+    quiz.appendChild(card);
+  }
+
+  updateScore();
+}
+
+function getUserAnswer(q) {
+  const card = document.querySelector(`[data-qid="${q.id}"]`);
+  if (q.type === "mc") {
+    const checked = card.querySelector(`input[name="q${q.id}"]:checked`);
+    return checked ? parseInt(checked.value, 10) : null;
+  } else {
+    const input = card.querySelector(`input[name="q${q.id}"]`);
+    return input ? input.value : "";
+  }
+}
+
+function isCorrect(q, userAnswer) {
+  if (q.type === "mc") {
+    return userAnswer === q.answer;
+  } else {
+    const u = normalize(userAnswer);
+    return q.answers.some(a => normalize(a) === u);
+  }
+}
+
+function correctDisplay(q) {
+  if (q.type === "mc") return q.choices[q.answer];
+  return q.answers[0];
+}
+
+const checkedMap = new Map(); // qid -> true/false
+
+function checkOne(qid) {
+  const q = questions.find(x => x.id === qid);
+  const ans = getUserAnswer(q);
+  const ok = isCorrect(q, ans);
+
+  checkedMap.set(qid, ok);
+
+  const fb = document.getElementById(`fb_${qid}`);
+  fb.style.display = "block";
+  fb.className = "feedback " + (ok ? "ok" : "bad");
+  fb.innerHTML = ok
+    ? `<strong>✅ Correct.</strong>`
+    : `<strong>❌ Not quite.</strong><div class="muted" style="margin-top:6px"><strong>Expected:</strong> ${correctDisplay(q)}</div>`;
+
+  updateScore();
+}
+
+function updateScore() {
+  const checked = checkedMap.size;
+  const correct = Array.from(checkedMap.values()).filter(Boolean).length;
+  document.getElementById("checked").textContent = checked.toString();
+  document.getElementById("score").textContent = correct.toString();
+}
+
+document.getElementById("checkAll").addEventListener("click", () => {
+  for (const q of questions) checkOne(q.id);
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  checkedMap.clear();
+  for (const q of questions) {
+    const card = document.querySelector(`[data-qid="${q.id}"]`);
+    const fb = document.getElementById(`fb_${q.id}`);
+    fb.style.display = "none";
+    if (q.type === "mc") {
+      card.querySelectorAll(`input[name="q${q.id}"]`).forEach(i => i.checked = false);
+    } else {
+      const input = card.querySelector(`input[name="q${q.id}"]`);
+      if (input) input.value = "";
+    }
+    const det = card.querySelector("details");
+    det.open = false;
+  }
+  updateScore();
+});
+
+render();
+</script>
+</body>
+</html>

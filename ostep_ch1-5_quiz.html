@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OSTEP Chapters 1–5 Interactive Quiz</title>
+<title>OSTEP Chapters 1–5 Quiz</title>
 <style>
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f6f7fb; color: #111; }
   header { background: #111827; color: #fff; padding: 18px 18px; }
@@ -28,15 +28,13 @@
   details { margin-top: 8px; }
   details summary { cursor: pointer; color: #111827; font-weight: 600; }
   .footer { margin-top: 10px; font-size: 12px; color: #6b7280; line-height: 1.4; }
-  code.kbd { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
 </style>
 </head>
 <body>
 <header>
-  <h1>OSTEP (Operating Systems: Three Easy Pieces) — Chapters 1–5 Quiz</h1>
+  <h1>OSTEP — Chapters 1–5 Quiz</h1>
   <p>
     Covers: Ch1 Dialogue on the Book · Ch2 Introduction to OS · Ch3 Dialogue on Virtualization · Ch4 Process abstraction · Ch5 UNIX Process API.
-    <br/>Tip: Answer first, then hit <strong>Check</strong>. Explanations are brief.
   </p>
 </header>
 
@@ -49,17 +47,14 @@
       <button class="btn" id="reset">Reset</button>
     </div>
     <p class="muted" style="margin-top:10px">
-      Short-answer questions are graded with lenient matching (case-insensitive; ignores extra spaces and punctuation).
+      Short answers: generous matching (keywords + similarity).
     </p>
   </div>
 
   <div id="quiz"></div>
 
   <div class="card footer">
-    <div><strong>How to use this:</strong> Open this file in any browser. It runs fully offline.</div>
-    <div style="margin-top:6px">
-      If you want, I can also generate a “hard mode” version (more code-trace and scenario questions).
-    </div>
+    <div><strong>Use:</strong> Open this file in any browser. It runs fully offline.</div>
   </div>
 </main>
 
@@ -70,8 +65,24 @@ const normalize = (s) => (s || "")
   .replace(/\\s+/g, " ")
   .trim();
 
+const tokens = (s) => normalize(s).split(" ").filter(Boolean);
+
+function overlapScore(a, b) {
+  // Coverage score: |A∩B| / |B|
+  const A = new Set(tokens(a));
+  const B = new Set(tokens(b));
+  if (B.size === 0) return 0;
+  let inter = 0;
+  for (const t of B) if (A.has(t)) inter++;
+  return inter / B.size;
+}
+
+function containsAll(hay, requiredTokens) {
+  const h = new Set(tokens(hay));
+  return requiredTokens.every(t => h.has(t));
+}
+
 const questions = [
-  // Ch1–3
   {
     id: 1,
     chapter: "Ch1–3",
@@ -109,6 +120,12 @@ const questions = [
       "the os takes a physical resource and transforms it into a more general powerful and easy to use virtual form",
       "turning a physical resource into a virtual abstraction that is easier to use",
       "presenting an illusion of many resources from fewer physical resources"
+    ],
+    keywords_any: [
+      ["os", "physical", "resource", "virtual"],
+      ["physical", "resource", "abstraction"],
+      ["illusion", "resource"],
+      ["virtual", "abstraction"]
     ],
     explanation: "Virtualization is the OS turning physical resources (CPU, memory, disk) into useful virtual abstractions."
   },
@@ -168,14 +185,13 @@ const questions = [
     answer: 1,
     explanation: "The increment compiles to multiple instructions; interleavings cause lost updates."
   },
-
-  // Ch4 Process abstraction
   {
     id: 8,
     chapter: "Ch4",
     type: "short",
     prompt: "In this book, a process is informally defined as a ________ ________.",
     answers: ["running program"],
+    keywords_any: [["running", "program"]],
     explanation: "Ch4 defines a process (informally) as a running program."
   },
   {
@@ -225,6 +241,7 @@ const questions = [
       "policy mechanism separation",
       "policy and mechanism separation"
     ],
+    keywords_any: [["policy", "mechanism"]],
     explanation: "Ch4 highlights the ‘separate policy and mechanism’ paradigm."
   },
   {
@@ -255,8 +272,6 @@ const questions = [
     answer: 0,
     explanation: "The process list (task list) tracks processes; entries are often called PCBs."
   },
-
-  // Ch5 Process API
   {
     id: 15,
     chapter: "Ch5",
@@ -291,7 +306,14 @@ const questions = [
       "lets the shell modify file descriptors before exec",
       "enables redirection and pipes without changing the program"
     ],
-    explanation: "The shell can change the child’s environment (e.g., redirection) after fork() and before exec()."
+    keywords_any: [
+      ["redirection"],
+      ["redirect"],
+      ["file", "descriptor"],
+      ["pipe"],
+      ["environment"]
+    ],
+    explanation: "The shell can adjust the child (e.g., redirection) after fork() and before exec()."
   },
   {
     id: 18,
@@ -327,6 +349,10 @@ const questions = [
     type: "short",
     prompt: "Name one UNIX signal and its common terminal shortcut from the chapter (e.g., SIGINT + Ctrl-C).",
     answers: ["sigint ctrl c", "sigint control c", "sigtstp ctrl z", "sigtstp control z"],
+    keywords_any: [
+      ["sigint", "c"],
+      ["sigtstp", "z"]
+    ],
     explanation: "The chapter mentions Ctrl-C → SIGINT and Ctrl-Z → SIGTSTP."
   }
 ];
@@ -420,13 +446,38 @@ function getUserAnswer(q) {
   }
 }
 
-function isCorrect(q, userAnswer) {
-  if (q.type === "mc") {
-    return userAnswer === q.answer;
-  } else {
-    const u = normalize(userAnswer);
-    return q.answers.some(a => normalize(a) === u);
+function shortIsCorrect(q, userAnswer) {
+  const u = normalize(userAnswer);
+  if (!u) return false;
+
+  // Exact accepted answers
+  if (q.answers && q.answers.some(a => normalize(a) === u)) return true;
+
+  // Keyword groups (OR)
+  if (q.keywords_any) {
+    for (const group of q.keywords_any) {
+      if (containsAll(u, group)) return true;
+    }
   }
+
+  // Similarity: accept if user covers most of any expected answer
+  if (q.answers && q.answers.length) {
+    const best = Math.max(...q.answers.map(a => overlapScore(u, a)));
+    if (best >= 0.65) return true;
+  }
+
+  // Substring fallback for short phrases
+  if (q.answers && q.answers.some(a => {
+    const ea = normalize(a);
+    return ea.length >= 6 && (u.includes(ea) || ea.includes(u));
+  })) return true;
+
+  return false;
+}
+
+function isCorrect(q, userAnswer) {
+  if (q.type === "mc") return userAnswer === q.answer;
+  return shortIsCorrect(q, userAnswer);
 }
 
 function correctDisplay(q) {
@@ -434,7 +485,7 @@ function correctDisplay(q) {
   return q.answers[0];
 }
 
-const checkedMap = new Map(); // qid -> true/false
+const checkedMap = new Map();
 
 function checkOne(qid) {
   const q = questions.find(x => x.id === qid);

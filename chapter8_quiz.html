@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 8 Quiz — Scheduling: The Multi-Level Feedback Queue</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 8 Quiz — Scheduling: The Multi-Level Feedback Queue</h1>
+      <p class="subtitle">Interactive practice quiz (multiple choice). Focus: MLFQ rules, priority adjustment, starvation, gaming, priority boost, and tuning.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: —</span>
+          <span class="pill" id="pillScore">Score: —</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading…</div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">← Previous</button>
+            <button class="action" id="nextBtn">Next →</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 8 (Scheduling: The Multi-Level Feedback Queue) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file — open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  const ORIGINAL = [{"q": "What is the fundamental crux of the MLFQ scheduling problem as stated in Chapter 8?", "options": ["How to schedule jobs when each job's run time is known in advance", "How to design a scheduler that minimizes response time for interactive jobs while also minimizing turnaround time, without a priori knowledge of job length", "How to ensure every job gets an exactly equal share of the CPU", "How to eliminate context-switch overhead entirely"], "answer": 1, "explain": "MLFQ tries to optimize both turnaround time (by running short jobs first) and response time (for interactive jobs), all without knowing job lengths ahead of time."}, {"q": "The Multi-level Feedback Queue was first described by Corbato et al. in 1962 in a system known as:", "options": ["UNIX", "The Compatible Time-Sharing System (CTSS)", "Multics", "Windows NT"], "answer": 1, "explain": "MLFQ was first described in the Compatible Time-Sharing System (CTSS). This work, along with later work on Multics, led to Corbato receiving the Turing Award."}, {"q": "In MLFQ, Rule 1 states: If Priority(A) > Priority(B), then:", "options": ["A and B run in round-robin fashion", "B runs (A doesn't)", "A runs (B doesn't)", "Both A and B are placed in the same queue"], "answer": 2, "explain": "Rule 1: if job A has higher priority than job B, then A is chosen to run and B does not run."}, {"q": "In MLFQ, what happens when two jobs have the same priority (Rule 2)?", "options": ["The job that arrived first always runs first (FIFO)", "They run in round-robin fashion using the time slice of the given queue", "The shorter job runs first (SJF)", "One is randomly selected to run to completion"], "answer": 1, "explain": "Rule 2: if two jobs are at the same priority level, they share the CPU in round-robin fashion using the queue's time slice."}, {"q": "When a new job enters the MLFQ system, it is initially placed at:", "options": ["The lowest-priority queue", "A randomly chosen queue", "The highest-priority queue (topmost)", "The middle queue"], "answer": 2, "explain": "Rule 3: new jobs enter at the highest priority. MLFQ assumes a new job might be short/interactive and gives it the benefit of the doubt."}, {"q": "What is the 'allotment' in the context of MLFQ?", "options": ["The total number of queues in the system", "The amount of time a job can spend at a given priority level before the scheduler reduces its priority", "The percentage of CPU time reserved for interactive jobs", "The size of the time slice at the lowest queue"], "answer": 1, "explain": "The allotment is the total amount of time a job can spend at a given priority level before being moved down. Initially in the chapter it equals a single time slice, but the concept is generalized later."}, {"q": "In the original MLFQ rules (4a and 4b), what happens if a job gives up the CPU (e.g., for I/O) before its allotment is used up?", "options": ["It is immediately moved to the lowest-priority queue", "It stays at the same priority level (its allotment is reset)", "It is removed from the system entirely", "It is boosted to a higher priority queue"], "answer": 1, "explain": "Rule 4b (original): if a job gives up the CPU before the allotment is used up, it stays at the same priority level, since it appears to be interactive."}, {"q": "In the original MLFQ rules (4a and 4b), what happens if a job uses up its entire allotment while running?", "options": ["It stays at the same priority level", "Its priority is reduced (it moves down one queue)", "It is killed by the scheduler", "It receives a priority boost"], "answer": 1, "explain": "Rule 4a (original): if a job uses up its allotment while running, its priority is reduced and it moves down one queue, since it appears to be a long-running CPU-bound job."}, {"q": "How does MLFQ approximate SJF behavior without knowing job lengths?", "options": ["It assigns random priorities and hopes for the best", "It gives every new job the highest priority; short jobs finish quickly at high priority, while long jobs gradually sink to lower queues", "It asks users to declare their job lengths at submission time", "It measures each job's total memory usage to estimate runtime"], "answer": 1, "explain": "By starting all jobs at the top priority, short jobs complete before being demoted. Long jobs slowly move to lower queues, mimicking SJF without advance knowledge of run times."}, {"q": "What is 'starvation' in the context of MLFQ?", "options": ["A job that crashes due to insufficient memory", "Long-running jobs never receive CPU time because too many interactive jobs keep consuming all CPU time at higher priority", "A job that finishes faster than expected", "The scheduler running out of queues"], "answer": 1, "explain": "Starvation occurs when too many high-priority interactive jobs monopolize the CPU, causing long-running lower-priority jobs to never get any CPU time."}, {"q": "What is 'gaming the scheduler' in MLFQ?", "options": ["Using a faster CPU to gain an advantage", "A program deliberately issuing an I/O operation just before its allotment expires to stay at the same high priority and monopolize CPU time", "Running multiple copies of the same program", "Adjusting the number of queues at runtime"], "answer": 1, "explain": "Gaming: a clever program issues I/O right before its allotment runs out, resetting its allotment and keeping its high priority, thus getting an unfair share of CPU."}, {"q": "The priority boost (Rule 5) solves which problem(s)?", "options": ["Only the gaming problem", "Only the starvation problem", "Both starvation and the problem of a CPU-bound job that transitions to interactive behavior", "The problem of too many context switches"], "answer": 2, "explain": "Rule 5 (periodic priority boost) ensures long-running jobs don't starve and also re-evaluates jobs that may have changed behavior from CPU-bound to interactive."}, {"q": "Rule 5 states: After some time period S, the scheduler should:", "options": ["Terminate all long-running jobs", "Move all jobs in the system to the topmost (highest priority) queue", "Reduce the priority of all jobs by one level", "Double the time slice of every queue"], "answer": 1, "explain": "Rule 5: after time period S, move all jobs to the topmost queue. This guarantees CPU-bound jobs make progress and aren't permanently starved."}, {"q": "John Ousterhout's term for hard-to-set system parameters like the priority boost period S is:", "options": ["Magic numbers", "Voo-doo constants", "Heuristic values", "Kernel parameters"], "answer": 1, "explain": "Ousterhout called such values 'voo-doo constants' because they seem to require some form of black magic to set correctly. This observation is known as Ousterhout's Law."}, {"q": "The refined Rule 4 (replacing Rules 4a and 4b) states:", "options": ["If a job gives up the CPU voluntarily, it always stays at the same level", "Once a job uses up its total time allotment at a given level (regardless of how many times it gave up the CPU), its priority is reduced", "Jobs can only move down one queue per time slice", "Jobs are never demoted; only the priority boost changes their level"], "answer": 1, "explain": "The refined Rule 4 tracks total CPU time used at a level. Whether a job uses its allotment in one burst or many small ones, once it's used up, the job moves down. This prevents gaming."}, {"q": "Why do most MLFQ implementations use varying time-slice lengths across different queues?", "options": ["To make implementation simpler", "High-priority queues get short time slices for quick interactive response; low-priority queues get longer slices to amortize context-switch cost for CPU-bound jobs", "All queues must use the same time slice by definition", "Longer time slices at high priority help interactive jobs finish faster"], "answer": 1, "explain": "Interactive jobs at high priority benefit from short quanta (fast response). CPU-bound jobs at low priority benefit from longer quanta (less switching overhead)."}, {"q": "According to Chapter 8, the Solaris MLFQ implementation (the Time-Sharing scheduling class) uses how many priority levels by default?", "options": ["3", "8", "60", "256"], "answer": 2, "explain": "The Solaris TS class provides a set of tables with 60 queues by default, with time slices ranging from 20ms (highest priority) to a few hundred milliseconds (lowest)."}, {"q": "In the Solaris MLFQ implementation, how often are priorities boosted (approximately)?", "options": ["Every 10 milliseconds", "Every 100 milliseconds", "Around every 1 second", "Every 10 seconds"], "answer": 2, "explain": "In the Solaris default configuration, priorities are boosted around every 1 second or so."}, {"q": "Some MLFQ schedulers (like FreeBSD 4.3) use a different approach than the table-based rules. They use:", "options": ["Random priority assignment", "Mathematical formulae based on how much CPU a process has used, with usage decayed over time", "A single fixed-priority queue", "User-specified priority levels only"], "answer": 1, "explain": "FreeBSD 4.3 uses a formula to compute priority based on CPU usage, with usage decayed over time. This is an example of a decay-usage scheduling algorithm."}, {"q": "The command-line utility that lets users provide a hint to the scheduler about a job's priority is:", "options": ["top", "nice", "ps", "kill"], "answer": 1, "explain": "The nice utility allows users to increase or decrease the priority of a job, giving the scheduler advice about relative importance."}, {"q": "Which of the following is NOT one of the refined MLFQ rules listed in the Chapter 8 summary?", "options": ["Rule 1: If Priority(A) > Priority(B), A runs (B doesn't)", "Rule 3: When a job enters the system, it is placed at the highest priority", "Rule 5: After some time period S, move all jobs to the topmost queue", "Rule 6: Jobs that perform I/O are always given the highest priority permanently"], "answer": 3, "explain": "There is no Rule 6. The five refined rules are: (1) higher priority runs, (2) equal priority uses RR, (3) new jobs start at top, (4) allotment-based demotion, (5) periodic priority boost."}, {"q": "Why is MLFQ described as a scheduler that 'learns from the past to predict the future'?", "options": ["It uses machine learning algorithms to predict job behavior", "It observes a job's past behavior (CPU usage, I/O patterns) to adjust its priority, predicting whether it will be interactive or CPU-bound", "It keeps a database of all previously run programs", "It reads user preferences from a configuration file"], "answer": 1, "explain": "MLFQ uses feedback: it watches how a job behaves (does it use lots of CPU? does it do I/O?) and adjusts priority accordingly, using history to predict future behavior."}, {"q": "Which real-world operating systems are mentioned in Chapter 8 as using a form of MLFQ as their base scheduler?", "options": ["Only Linux", "BSD UNIX derivatives, Solaris, and Windows NT and subsequent Windows versions", "Only Solaris and macOS", "None — MLFQ is only theoretical"], "answer": 1, "explain": "Chapter 8 specifically mentions BSD UNIX derivatives, Solaris, and Windows NT (and subsequent Windows operating systems) as using a form of MLFQ."}];
+
+  const els = {
+    qText: document.getElementById('qText'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  const state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    let q = deepClone(ORIGINAL);
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        const opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        const newOptions = opts.map(function(o) { return o.text; });
+        const newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    let correct = 0;
+    let answered = 0;
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    const s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    const pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    const item = state.quiz[state.idx];
+    const correctIdx = item.answer;
+    const isCorrect = chosenIdx === correctIdx;
+    const correctText = item.options[correctIdx];
+
+    const tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    let html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    const s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    const pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    const missed = [];
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        const it = state.quiz[i];
+        const chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    let missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    const item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    els.opts.innerHTML = '';
+    const chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      const alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

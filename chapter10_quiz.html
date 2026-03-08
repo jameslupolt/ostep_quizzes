@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 10 Quiz — Multiprocessor Scheduling (Advanced)</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 10 Quiz — Multiprocessor Scheduling (Advanced)</h1>
+      <p class="subtitle">Interactive practice quiz (multiple choice). Focus: multiprocessor architecture, cache coherence, SQMS, MQMS, cache affinity, and work stealing.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: —</span>
+          <span class="pill" id="pillScore">Score: —</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading…</div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">← Previous</button>
+            <button class="action" id="nextBtn">Next →</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 10 (Multiprocessor Scheduling (Advanced)) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file — open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  const ORIGINAL = [{"q": "What is the fundamental crux of Chapter 10 regarding multiprocessor scheduling?", "options": ["How to make a single CPU run faster by increasing clock speed", "How should the OS schedule jobs on multiple CPUs, and what new problems arise?", "How to design a file system that works across multiple disks", "How to reduce power consumption on multicore chips"], "answer": 1, "explain": "The crux of Chapter 10 is how to schedule jobs on multiple CPUs. New problems arise including cache coherence, synchronization, cache affinity, and load balancing."}, {"q": "Why does simply adding more CPUs not automatically make a typical single-threaded application run faster?", "options": ["Because more CPUs generate too much heat", "Because a single-threaded application can only use one CPU at a time and cannot take advantage of additional cores", "Because the operating system prevents applications from using more than one CPU", "Because memory bandwidth is always the bottleneck, not CPU count"], "answer": 1, "explain": "A single-threaded application runs on only one CPU. To benefit from multiple CPUs, the application must be rewritten to use multiple threads or otherwise express parallelism."}, {"q": "In a single-CPU system, caches improve performance by exploiting which two types of locality?", "options": ["Sequential locality and random locality", "Temporal locality (recently accessed data is likely reused) and spatial locality (nearby data is likely accessed soon)", "Logical locality and physical locality", "Code locality and data locality"], "answer": 1, "explain": "Caches exploit temporal locality (data accessed recently will likely be accessed again soon) and spatial locality (data near recently accessed data will likely be accessed soon)."}, {"q": "What is the cache coherence problem in multiprocessor systems?", "options": ["Caches on different CPUs may hold stale copies of data that has been updated by another CPU", "Caches are too small to hold all the data a program needs", "Caches on different CPUs always have the same data, causing wasted space", "The CPU cache is slower than main memory in multiprocessor systems"], "answer": 0, "explain": "When multiple CPUs cache the same memory location and one CPU modifies it, the other CPUs may still hold the old (stale) value. This inconsistency is the cache coherence problem."}, {"q": "In the cache coherence example from the chapter, CPU 1 reads and caches address A (value D), then modifies it to D'. What problem occurs when CPU 2 then reads address A?", "options": ["CPU 2 crashes because the address is locked by CPU 1", "CPU 2 reads the stale value D from main memory instead of the updated value D'", "CPU 2 automatically gets the correct value D' from CPU 1's cache", "CPU 2 is forced to wait until CPU 1 writes D' back to main memory"], "answer": 1, "explain": "CPU 2 reads from main memory and gets the old value D, not the updated D' that is only in CPU 1's cache. This is the classic cache coherence problem."}, {"q": "What is the hardware-based solution to cache coherence described in the chapter?", "options": ["Each CPU has its own separate main memory to avoid conflicts", "Bus snooping: each cache monitors the memory bus and invalidates or updates its cached copy when another CPU writes to the same address", "The operating system manually flushes all caches after every write", "A special 'coherence CPU' is dedicated to synchronizing all caches"], "answer": 1, "explain": "With bus snooping, each cache controller monitors (snoops) the bus for memory operations. When a CPU writes to an address cached elsewhere, the other caches invalidate or update their copies."}, {"q": "Even though hardware provides cache coherence, programs accessing shared data across CPUs still need:", "options": ["No additional mechanisms — hardware coherence is sufficient for correctness", "Explicit synchronization primitives such as locks (e.g., mutex) to ensure mutual exclusion", "A dedicated CPU to manage shared data", "All shared data to be stored in CPU registers rather than memory"], "answer": 1, "explain": "Hardware cache coherence ensures caches see up-to-date values, but programs still need locks or other synchronization to protect critical sections and ensure correct concurrent access to shared data structures."}, {"q": "What problem can occur when two CPUs concurrently execute a List_Pop operation on a shared linked list without locking?", "options": ["The list grows infinitely because both CPUs add elements instead of removing them", "Both CPUs may remove and return the same element, leading to a double free or duplicate return value", "One CPU will always crash while the other succeeds", "The list is automatically protected by hardware cache coherence, so no problem occurs"], "answer": 1, "explain": "Without locks, both CPUs can read the same head pointer, both remove the same node, and both return the same value — leading to a double free and incorrect behavior."}, {"q": "Why do locks become a performance problem as the number of CPUs grows?", "options": ["Locks use too much memory on systems with many CPUs", "Lock contention increases: more CPUs competing for the same lock means more time spent waiting rather than doing useful work", "Locks are only supported on single-CPU systems", "Locks cause cache coherence to stop working"], "answer": 1, "explain": "As more CPUs contend for a single lock, the serialization overhead grows. CPUs spend increasing time waiting for the lock, reducing the parallelism benefit of having multiple CPUs."}, {"q": "What is cache affinity in the context of multiprocessor scheduling?", "options": ["The tendency of caches to prefer storing code over data", "The advantage of running a process on the same CPU it ran on previously, because its data is likely still in that CPU's cache (warm cache)", "The requirement that all CPUs must share a single unified cache", "The process of clearing all caches when a context switch occurs"], "answer": 1, "explain": "Cache affinity means a process benefits from running on the same CPU repeatedly, because its working set (cached data, TLB entries) is likely still present, avoiding costly cold-cache misses."}, {"q": "What does SQMS stand for in the context of multiprocessor scheduling?", "options": ["Synchronized Queue Management System", "Single-Queue Multiprocessor Scheduling", "Shared Queue Multi-Stage Scheduling", "Sequential Queue Migration Scheduling"], "answer": 1, "explain": "SQMS stands for Single-Queue Multiprocessor Scheduling, the simplest approach where all CPUs share one global scheduling queue."}, {"q": "What is the primary advantage of Single-Queue Multiprocessor Scheduling (SQMS)?", "options": ["It provides excellent cache affinity for all processes", "It is simple to implement because it reuses the existing single-CPU scheduling logic with minimal modification", "It scales perfectly to any number of CPUs", "It eliminates the need for any locking or synchronization"], "answer": 1, "explain": "SQMS is straightforward: you take a single-CPU scheduler and add a shared lock so multiple CPUs can pull jobs from the same queue. This simplicity is its main advantage."}, {"q": "What are the two major problems with SQMS?", "options": ["High memory usage and slow boot times", "Lack of scalability due to lock contention on the shared queue, and poor cache affinity because jobs bounce between CPUs", "Inability to handle I/O-bound jobs, and excessive context switching", "It can only support two CPUs and requires specialized hardware"], "answer": 1, "explain": "SQMS suffers from (1) scalability issues as all CPUs contend for the single queue lock, and (2) poor cache affinity since jobs may run on a different CPU each time slice."}, {"q": "In the SQMS cache affinity example with 5 jobs (A-E) on 4 CPUs, what undesirable behavior occurs?", "options": ["Some jobs are never scheduled at all", "Each job runs on a different CPU each time slice, destroying cache locality", "All 5 jobs are assigned to the same CPU", "The system deadlocks because there are more jobs than CPUs"], "answer": 1, "explain": "With 5 jobs and 4 CPUs in SQMS, jobs rotate across CPUs each time slice. For example, job A might run on CPU 0, then CPU 1, then CPU 2, etc., losing all cache affinity benefits."}, {"q": "What does MQMS stand for?", "options": ["Multiple Queue Management Scheduling", "Multi-Queue Multiprocessor Scheduling", "Multi-Quantized Migration Scheduling", "Modular Queue Mapping System"], "answer": 1, "explain": "MQMS stands for Multi-Queue Multiprocessor Scheduling, where each CPU has its own separate scheduling queue."}, {"q": "What are the two key advantages of MQMS over SQMS?", "options": ["Lower memory usage and faster boot times", "Better scalability (less lock contention since queues are separate) and intrinsic cache affinity (jobs naturally stay on the same CPU)", "Simpler implementation and fewer lines of code", "Guaranteed equal CPU time for all jobs and no need for any scheduling algorithm"], "answer": 1, "explain": "MQMS is more scalable because each CPU has its own queue (less contention), and it naturally provides cache affinity since jobs stay in the same CPU's queue."}, {"q": "What is the fundamental problem with Multi-Queue Multiprocessor Scheduling (MQMS)?", "options": ["It is too complex to implement in a real operating system", "Load imbalance: some CPUs may have much more work than others, leading to unfairness and idle CPUs", "It cannot handle more than two CPUs", "It requires all jobs to have the same priority"], "answer": 1, "explain": "MQMS can lead to load imbalance. If jobs on one CPU finish while another CPU's queue is still full, some CPUs are idle or underutilized while others are overloaded."}, {"q": "In the MQMS load imbalance example, 4 jobs (A, B, C, D) are distributed across 2 CPUs with A and C on CPU 0, B and D on CPU 1. If C finishes, what happens?", "options": ["CPU 0 automatically gets a job from CPU 1's queue", "CPU 0 now runs only A (getting twice as much CPU as B or D individually), creating an imbalance", "Both CPUs shut down and redistribute all remaining jobs", "A is moved to CPU 1 to balance the load"], "answer": 1, "explain": "After C finishes, CPU 0 has only job A while CPU 1 still alternates between B and D. Job A gets 100% of CPU 0 while B and D each get only 50% of CPU 1 — an unfair imbalance."}, {"q": "What happens in the worst-case MQMS scenario where both A and C finish, leaving CPU 0 empty and CPU 1 with B and D?", "options": ["The system crashes because a CPU cannot be idle", "CPU 0 sits completely idle while CPU 1 is still busy with B and D, wasting half the system's capacity", "CPU 1 automatically distributes its jobs across both CPUs", "B and D run twice as fast because there is less contention"], "answer": 1, "explain": "Without migration, CPU 0 is completely idle while CPU 1 handles all the work. This is the worst-case load imbalance: half the processing power is wasted."}, {"q": "What technique does MQMS use to solve the load imbalance problem?", "options": ["Adding more CPUs to the system", "Migration: moving jobs from one CPU's queue to another to balance the load", "Switching to SQMS whenever imbalance is detected", "Terminating jobs on overloaded CPUs"], "answer": 1, "explain": "Migration involves moving (migrating) jobs from one CPU to another to balance load. This can range from simple one-time moves to continuous rebalancing strategies."}, {"q": "What is work stealing in the context of MQMS?", "options": ["A CPU that has finished all its work shuts down to save power", "A source queue with few or no jobs periodically checks (peeks at) other target queues and steals one or more jobs if the target has more work", "The OS takes jobs away from user processes and runs system tasks instead", "A CPU copies another CPU's cache contents to speed up execution"], "answer": 1, "explain": "In work stealing, an underloaded (source) queue peeks at other (target) queues. If a target queue has significantly more jobs, the source steals one or more jobs to balance the load."}, {"q": "What is the key tension in work stealing that makes it difficult to tune?", "options": ["Checking other queues too often creates high overhead (defeating the purpose of separate queues), but checking too rarely allows severe load imbalances to persist", "Work stealing always causes cache misses, making it never worthwhile", "It only works with exactly two CPUs and fails with more", "Stolen jobs always run slower on the new CPU"], "answer": 0, "explain": "If the source queue checks others too frequently, the overhead negates the scalability benefit of MQMS. If it checks too infrequently, significant load imbalances go unaddressed for too long. Finding the right balance is difficult."}, {"q": "Which three multiprocessor schedulers does the chapter mention as having been used in Linux?", "options": ["FCFS, SJF, and Round Robin", "O(1) scheduler, Completely Fair Scheduler (CFS), and BF Scheduler (BFS)", "MLFQ, Lottery, and Stride", "EDF, Rate Monotonic, and Proportional Share"], "answer": 1, "explain": "The chapter mentions three Linux schedulers: the O(1) scheduler, the Completely Fair Scheduler (CFS), and the BF Scheduler (BFS). These represent different approaches to multiprocessor scheduling."}, {"q": "Which Linux multiprocessor schedulers use multiple queues, and which uses a single queue?", "options": ["All three use multiple queues", "O(1) and CFS use multiple queues; BFS uses a single queue", "O(1) uses a single queue; CFS and BFS use multiple queues", "All three use a single queue"], "answer": 1, "explain": "O(1) and CFS both use a multi-queue approach (one queue per CPU), while BFS uses a single-queue approach. Both designs can be successful in practice."}, {"q": "The O(1) scheduler is described as priority-based, similar to which scheduling approach?", "options": ["Round Robin", "MLFQ (Multi-Level Feedback Queue)", "Shortest Job First (SJF)", "Lottery Scheduling"], "answer": 1, "explain": "The O(1) scheduler is priority-based and focuses on interactivity, similar to how MLFQ adjusts priorities based on job behavior. It changes a process's priority over time."}, {"q": "The CFS (Completely Fair Scheduler) is described as a deterministic proportional-share scheduler, similar to which scheduling approach?", "options": ["First Come First Served (FCFS)", "Multi-Level Feedback Queue (MLFQ)", "Stride scheduling", "Shortest Remaining Time First (SRTF)"], "answer": 2, "explain": "CFS is a deterministic proportional-share scheduler, similar in concept to Stride scheduling, where each process gets a fair share of CPU time proportional to its weight."}, {"q": "The BFS (BF Scheduler) is based on which scheduling algorithm?", "options": ["Shortest Job First (SJF)", "Multi-Level Feedback Queue (MLFQ)", "Earliest Eligible Virtual Deadline First (EEVDF)", "Rate Monotonic Scheduling (RMS)"], "answer": 2, "explain": "BFS is a single-queue proportional-share scheduler based on the Earliest Eligible Virtual Deadline First (EEVDF) algorithm."}, {"q": "In a multiprocessor system, what is the relationship between caches and main memory?", "options": ["Caches replace main memory entirely on multiprocessor systems", "Each CPU has its own small, fast cache(s), while all CPUs share a single large, slower main memory", "All CPUs share a single cache but have separate main memories", "Caches and main memory are the same thing on multiprocessor systems"], "answer": 1, "explain": "In a typical multiprocessor architecture, each CPU has its own cache hierarchy (L1, L2, etc.) that is small and fast, while all CPUs share a common main memory that is large but slower."}, {"q": "According to the chapter summary, why is building a general-purpose multiprocessor scheduler described as daunting?", "options": ["Because multiprocessor hardware is unreliable and crashes frequently", "Because there are no known scheduling algorithms that work on multiple CPUs", "Because small changes to the scheduling code can lead to large and surprising behavioral differences, making it hard to predict outcomes", "Because all multiprocessor schedulers require specialized hardware support that most systems lack"], "answer": 2, "explain": "The chapter notes that building a general-purpose scheduler is daunting because even small code changes can cause large behavioral differences. The interaction of caches, load balancing, and affinity makes outcomes hard to predict."}, {"q": "What key lesson does Chapter 10 convey about the SQMS vs. MQMS debate?", "options": ["SQMS is always superior because of its simplicity", "MQMS is always superior because of its scalability", "Both approaches have tradeoffs and both can be successful, as demonstrated by real Linux schedulers using each approach", "Neither approach works in practice; a completely different paradigm is needed"], "answer": 2, "explain": "The chapter shows that both SQMS (used by BFS) and MQMS (used by O(1) and CFS) have been successfully deployed in Linux. Each has strengths and weaknesses, and neither is universally better."}];
+
+  const els = {
+    qText: document.getElementById('qText'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  const state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    let q = deepClone(ORIGINAL);
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        const opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        const newOptions = opts.map(function(o) { return o.text; });
+        const newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    let correct = 0;
+    let answered = 0;
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    const s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    const pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    const item = state.quiz[state.idx];
+    const correctIdx = item.answer;
+    const isCorrect = chosenIdx === correctIdx;
+    const correctText = item.options[correctIdx];
+
+    const tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    let html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    const s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    const pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    const missed = [];
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        const it = state.quiz[i];
+        const chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    let missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    const item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    els.opts.innerHTML = '';
+    const chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      const alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

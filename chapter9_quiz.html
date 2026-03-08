@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 9 Quiz — Scheduling: Proportional Share</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 9 Quiz — Scheduling: Proportional Share</h1>
+      <p class="subtitle">Interactive practice quiz (multiple choice). Focus: lottery scheduling, stride scheduling, tickets, CFS, and proportional-share mechanisms.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: —</span>
+          <span class="pill" id="pillScore">Score: —</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading…</div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">← Previous</button>
+            <button class="action" id="nextBtn">Next →</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 9 (Scheduling: Proportional Share) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file — open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  const ORIGINAL = [{"q": "What is the fundamental goal of proportional-share (fair-share) scheduling?", "options": ["Minimize turnaround time for all jobs", "Guarantee that each job obtains a certain percentage of CPU time", "Run the shortest job first to optimize response time", "Eliminate context-switch overhead entirely"], "answer": 1, "explain": "Proportional-share schedulers aim to guarantee each job a certain percentage of CPU time, rather than optimizing turnaround or response time."}, {"q": "In lottery scheduling, what do tickets represent?", "options": ["The number of time slices a process has already used", "The share of a resource that a process should receive", "The priority level of a process in a multi-level queue", "The amount of memory allocated to a process"], "answer": 1, "explain": "Tickets represent the share of a resource (e.g., CPU) that a process should receive. The percent of tickets a process holds equals the percent of the resource it gets."}, {"q": "If process A holds 75 tickets and process B holds 25 tickets, what percentage of CPU time should A receive over the long run?", "options": ["25%", "50%", "75%", "100%"], "answer": 2, "explain": "A holds 75 out of 100 total tickets, so A should receive 75% of the CPU time over the long run."}, {"q": "How does the lottery scheduler decide which process to run at each time slice?", "options": ["It always picks the process with the most tickets", "It picks a random winning ticket number from 0 to totaltickets-1", "It uses a round-robin rotation through all processes", "It selects the process with the lowest process ID"], "answer": 1, "explain": "The lottery scheduler holds a lottery each time slice by picking a random winning ticket number in the range 0 to totaltickets-1. The process holding that ticket wins and gets to run."}, {"q": "Lottery scheduling provides exact proportional CPU sharing on every short run.", "options": ["True — it always gives exact proportions", "False — it is only probabilistically correct and approaches desired proportions over longer runs", "True — but only when there are exactly two processes", "False — it never approaches the correct proportions"], "answer": 1, "explain": "Lottery scheduling is probabilistically correct. Over short runs, the actual proportions may deviate from the desired ones, but over longer runs the proportions converge to the expected values."}, {"q": "Which of the following is NOT listed as an advantage of using randomness in lottery scheduling?", "options": ["It avoids strange corner-case behaviors", "It is lightweight, requiring little state to track per process", "It guarantees perfectly deterministic results", "It is quite fast, requiring only a random number generator and a process list"], "answer": 2, "explain": "Randomness avoids corner cases, is lightweight, and is fast. However, it does not guarantee deterministic results — that is a property of stride scheduling instead."}, {"q": "What is ticket currency in lottery scheduling?", "options": ["A mechanism where users allocate tickets in their own currency and the system converts to a global currency", "A way to transfer tickets between processes for client/server interactions", "A process temporarily raising its own ticket count", "The exchange rate between CPU time and I/O time"], "answer": 0, "explain": "Ticket currency allows users to allocate tickets in their own denomination. The system automatically converts each user's currency into the correct number of global tickets."}, {"q": "What is ticket transfer?", "options": ["The OS redistributing tickets equally among all processes", "A process temporarily handing its tickets to another process, useful in client/server scenarios", "Converting tickets from one user's currency to another", "Removing tickets from a process that performs too much I/O"], "answer": 1, "explain": "Ticket transfer allows a process to temporarily hand off its tickets to another process. This is especially useful in client/server settings where a client can boost the server handling its request."}, {"q": "In what kind of environment can ticket inflation work safely?", "options": ["Any multi-user environment", "Only in environments where processes trust one another", "Only in real-time operating systems", "It never works safely in any environment"], "answer": 1, "explain": "Ticket inflation — where a process raises or lowers its own ticket count — only works safely when processes trust each other. In a competitive environment, a greedy process could give itself a huge number of tickets."}, {"q": "What data structures and state does the lottery scheduler implementation require?", "options": ["A red-black tree, a hash map, and a priority heap", "A random number generator, a list of processes with ticket counts, and the total ticket count", "A multi-level feedback queue with configurable time slices", "A sorted array of process deadlines and burst times"], "answer": 1, "explain": "The lottery scheduler implementation is simple: it needs a random number generator, a list of processes with their ticket counts, and the total number of tickets."}, {"q": "When traversing the process list to find the lottery winner, how does the scheduler determine which process holds the winning ticket?", "options": ["It checks if the process ID equals the winning ticket number", "It accumulates ticket counts in a counter while traversing; when the counter exceeds the winning number, that process is chosen", "It divides the winning number by each process's ticket count", "It picks the first process in the list that has any tickets"], "answer": 1, "explain": "The scheduler traverses the list, adding each process's ticket count to a running counter. The first process for which the counter exceeds the winning ticket number is the winner."}, {"q": "Why is it recommended to sort the process list in descending order of ticket count for lottery scheduling?", "options": ["It makes the random number generation faster", "It ensures the process with the most tickets is checked first, reducing the average number of iterations needed", "It is required for correctness of the algorithm", "It prevents ticket inflation attacks"], "answer": 1, "explain": "Sorting in descending order of ticket count is an optimization: the process most likely to win (most tickets) is checked first, so on average fewer iterations are needed to find the winner."}, {"q": "The fairness metric F used in the chapter is defined as:", "options": ["Total CPU time used by all processes divided by the number of processes", "The time the first job completes divided by the time the second job completes", "The ratio of context switches to total time slices", "The number of tickets held by the winning process divided by total tickets"], "answer": 1, "explain": "The fairness metric F is defined as the time the first job completes divided by the time the second job completes. An ideal (perfectly fair) value of F is 1."}, {"q": "What is stride scheduling?", "options": ["A probabilistic scheduling algorithm that uses random ticket draws", "A deterministic fair-share scheduler where each process has a stride (inversely proportional to tickets) and a pass counter", "A variant of MLFQ that uses proportional time slices", "A scheduling algorithm designed specifically for I/O-bound processes"], "answer": 1, "explain": "Stride scheduling is a deterministic fair-share scheduler. Each process has a stride value (a large number divided by its tickets) and a pass counter. The process with the lowest pass value runs next."}, {"q": "In stride scheduling, if a process has more tickets, what happens to its stride value?", "options": ["Its stride is larger, so it runs less often", "Its stride is smaller, so it runs more often", "Its stride is the same as all other processes", "Its stride is set to zero"], "answer": 1, "explain": "Stride is computed as a large number divided by the process's ticket count. More tickets means a smaller stride, which means the pass counter grows more slowly, so the process is selected more frequently."}, {"q": "In stride scheduling with processes A (100 tickets, stride 100), B (50 tickets, stride 200), and C (250 tickets, stride 40), which process runs most often?", "options": ["A, because it has the second-most tickets", "B, because it has the largest stride", "C, because it has the smallest stride and most tickets", "They all run equally often"], "answer": 2, "explain": "C has the most tickets (250) and the smallest stride (40). Its pass counter increments slowly, so it has the lowest pass value most often and runs most frequently."}, {"q": "What key problem does stride scheduling have that lottery scheduling does not?", "options": ["Stride scheduling cannot handle more than two processes", "Stride scheduling requires global state (pass counters), so a new process joining with pass=0 would monopolize the CPU", "Stride scheduling is too slow for practical use", "Stride scheduling cannot achieve proportional sharing"], "answer": 1, "explain": "Stride scheduling maintains global state (pass counters). A new process entering with pass value 0 would have the lowest pass and monopolize the CPU until its pass catches up. Lottery scheduling has no such global state — new processes just add tickets."}, {"q": "In the Linux Completely Fair Scheduler (CFS), what metric is used instead of tickets to track each process's share?", "options": ["Priority level", "Virtual runtime (vruntime)", "Stride value", "Ticket count"], "answer": 1, "explain": "CFS uses virtual runtime (vruntime) to track how much CPU time each process has accumulated. It always picks the process with the lowest vruntime to run next."}, {"q": "What is the sched_latency parameter in CFS?", "options": ["The maximum time a process can sleep before being terminated", "A target scheduling period that is divided among all running processes to determine each one's time slice", "The minimum time between context switches", "The time it takes for the scheduler to make a decision"], "answer": 1, "explain": "sched_latency is a target period (typically 48ms) that CFS divides evenly among all n running processes. Each process gets sched_latency / n as its time slice."}, {"q": "What is the purpose of the min_granularity parameter in CFS?", "options": ["It sets the maximum time slice a process can receive", "It ensures no process gets a time slice smaller than this value, avoiding excessive context switches when many processes are running", "It determines the frequency of the periodic timer interrupt", "It sets the minimum number of processes that must be running"], "answer": 1, "explain": "When there are many processes, dividing sched_latency by n could produce very small time slices. min_granularity (typically 6ms) sets a floor on the time slice to limit context-switch overhead."}, {"q": "In CFS, the nice value ranges from:", "options": ["-10 to +10, with 0 as default", "-20 to +19, with 0 as default", "0 to 100, with 50 as default", "1 to 40, with 20 as default"], "answer": 1, "explain": "CFS uses the standard UNIX nice value range of -20 to +19, with a default of 0. Negative values mean higher priority (more CPU), positive values mean lower priority (less CPU)."}, {"q": "In CFS, a positive nice value means:", "options": ["The process has higher priority and gets more CPU time", "The process has lower priority and gets less CPU time", "The process is guaranteed to never be preempted", "The process will only run when no other processes are ready"], "answer": 1, "explain": "A positive nice value means the process is 'nicer' to other processes — it yields priority. It receives a lower weight and therefore less CPU time."}, {"q": "How does CFS compute a process's time slice using weights?", "options": ["time_slice = sched_latency / number_of_processes (ignoring weights)", "time_slice = (weight_k / total_weight_of_all_processes) * sched_latency", "time_slice = stride * number_of_tickets", "time_slice = min_granularity * nice_value"], "answer": 1, "explain": "CFS computes each process's time slice as its weight divided by the sum of all process weights, multiplied by sched_latency. This gives proportional time slices based on nice values."}, {"q": "How does CFS scale vruntime to account for process weights?", "options": ["vruntime_i += runtime_i (no scaling)", "vruntime_i += (weight_0 / weight_i) * runtime_i", "vruntime_i += weight_i * runtime_i", "vruntime_i += runtime_i / number_of_processes"], "answer": 1, "explain": "CFS scales vruntime inversely by weight: vruntime_i += (weight_0 / weight_i) * runtime_i, where weight_0 is the weight of a default-priority (nice 0) process. Higher-weight processes accumulate vruntime more slowly."}, {"q": "Why does the CFS weight table preserve CPU proportion ratios when the nice difference between two processes is constant?", "options": ["Because the weights are randomly assigned", "Because the table is designed so that a constant nice difference always produces the same ratio of weights, regardless of absolute nice values", "Because all weights are equal", "Because nice values are ignored in the weight calculation"], "answer": 1, "explain": "The prio_to_weight table is carefully constructed so that the ratio between weights for a fixed nice difference remains constant. For example, a difference of 5 nice levels always yields roughly the same CPU time ratio."}, {"q": "What data structure does CFS use to efficiently manage running and runnable processes?", "options": ["A simple linked list", "A hash table", "A red-black tree", "A binary heap"], "answer": 2, "explain": "CFS uses a red-black tree (a balanced binary search tree) to store running and runnable processes ordered by vruntime. This provides O(log n) insertion, deletion, and lookup of the process with the lowest vruntime."}, {"q": "When a sleeping process wakes up in CFS, what does the scheduler do with its vruntime?", "options": ["It keeps the old vruntime from before the process went to sleep", "It sets the vruntime to the minimum vruntime value currently in the red-black tree", "It resets the vruntime to zero", "It sets the vruntime to the maximum vruntime in the tree"], "answer": 1, "explain": "CFS sets a waking process's vruntime to the minimum value in the tree. This avoids starvation (the process won't monopolize the CPU by having a very low vruntime), but it also means frequently-sleeping processes may not get their full fair share."}, {"q": "Which of the following is a limitation of proportional-share schedulers mentioned in the chapter?", "options": ["They are too complex to implement in any real operating system", "They do not mesh well with I/O, and ticket or priority assignment among competing jobs is difficult", "They always cause starvation of long-running processes", "They require hardware support not available on modern CPUs"], "answer": 1, "explain": "The chapter notes that fair-share schedulers don't integrate well with I/O workloads, and the problem of assigning tickets or priorities among jobs that compete for resources remains open and difficult."}, {"q": "According to the chapter, proportional-share scheduling is a particularly good fit for:", "options": ["Single-user desktop computers", "Real-time embedded systems", "Virtualized data centers where proportional resource sharing to hosted VMs is desirable", "Batch processing systems with no interactive jobs"], "answer": 2, "explain": "The chapter identifies virtualized data centers (cloud environments) as a natural fit for proportional-share scheduling, where each VM can be guaranteed a proportional share of physical resources."}, {"q": "Lottery scheduling was first proposed by:", "options": ["Linus Torvalds in 1991", "Waldspurger and Weihl in 1994", "Corbato et al. in 1962", "Ousterhout in 1990"], "answer": 1, "explain": "Lottery scheduling was introduced by Waldspurger and Weihl in their 1994 paper. Waldspurger later also developed stride scheduling in 1995."}];
+
+  const els = {
+    qText: document.getElementById('qText'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  const state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    let q = deepClone(ORIGINAL);
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        const opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        const newOptions = opts.map(function(o) { return o.text; });
+        const newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    let correct = 0;
+    let answered = 0;
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    const s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    const pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    const item = state.quiz[state.idx];
+    const correctIdx = item.answer;
+    const isCorrect = chosenIdx === correctIdx;
+    const correctText = item.options[correctIdx];
+
+    const tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    let html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    const s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    const pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    const missed = [];
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        const it = state.quiz[i];
+        const chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    let missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    const item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    els.opts.innerHTML = '';
+    const chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      const alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapters 11-12 Quiz — CPU Virtualization Review & Memory Virtualization Intro</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapters 11-12 Quiz — CPU Virtualization Review & Memory Virtualization Intro</h1>
+      <p class="subtitle">Comprehensive review of CPU virtualization mechanisms and policies (Ch. 4-10), plus introduction to memory virtualization concepts.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: —</span>
+          <span class="pill" id="pillScore">Score: —</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading…</div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">← Previous</button>
+            <button class="action" id="nextBtn">Next →</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapters 11 (Summary Dialogue on CPU Virtualization) and 12 (A Dialogue on Memory Virtualization) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file — open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  const ORIGINAL = [
+    {
+      "q": "[Spot the False Statement] Which of the following statements about CPU virtualization mechanisms is FALSE?",
+      "options": [
+        "The OS sets up the trap table at boot time so that it — not user programs — controls what code runs when exceptions occur.",
+        "A timer interrupt allows the OS to regain control of the CPU even if a user process never voluntarily gives it up.",
+        "During a context switch, the OS saves the registers of the currently running process into its kernel stack and restores the registers of the next process.",
+        "When a system call trap occurs, the CPU switches to kernel mode and jumps to the address specified by the user process in its trap instruction."
+      ],
+      "answer": 3,
+      "explain": "The CPU does NOT jump to an address specified by the user process. It jumps to the address specified in the trap table, which was set up by the OS at boot time. Allowing user processes to specify trap handler addresses would be a massive security hole — a process could redirect traps to its own malicious code."
+    },
+    {
+      "q": "[Spot the False Statement] Which of the following statements about scheduling policies is FALSE?",
+      "options": [
+        "Shortest Job First (SJF) is optimal for turnaround time when all jobs arrive at the same time.",
+        "Round Robin is designed to optimize response time at the cost of turnaround time.",
+        "MLFQ uses multiple queues with different priority levels and moves jobs between queues based on their observed behavior.",
+        "Lottery scheduling guarantees that a process holding 75% of the tickets will receive exactly 75% of the CPU over any given time window."
+      ],
+      "answer": 3,
+      "explain": "Lottery scheduling is probabilistic, not deterministic. A process holding 75% of the tickets will receive approximately 75% of CPU time over the long run, but there is no guarantee for any specific time window. Over short intervals, the actual allocation can deviate significantly from the expected proportion. Stride scheduling was designed specifically to address this by providing deterministic proportional sharing."
+    },
+    {
+      "q": "[Spot the False Statement] Which of the following statements about the Limited Direct Execution (LDE) protocol is FALSE?",
+      "options": [
+        "In LDE, user programs run directly on the CPU hardware without OS intervention for every instruction, which provides performance.",
+        "The OS must restrict certain operations (like I/O) to kernel mode to maintain control and protection.",
+        "The 'limited' in LDE refers to the fact that the OS limits how long a process can run by using timer interrupts and limits what a process can do by using hardware privilege levels.",
+        "Under LDE, the OS intercepts every memory access instruction to verify it is valid before allowing it to proceed."
+      ],
+      "answer": 3,
+      "explain": "The OS does NOT intercept every memory access — that would destroy performance and contradict the entire philosophy of direct execution. Instead, hardware mechanisms (like base/bounds registers or page tables with TLBs) check memory accesses without OS involvement on each instruction. The OS sets up these hardware mechanisms, but the checks happen in hardware at full speed."
+    },
+    {
+      "q": "[Spot the False Statement] Which of the following statements about multiprocessor scheduling is FALSE?",
+      "options": [
+        "Cache affinity suggests that a process benefits from running on the same CPU repeatedly because its data may still be in that CPU's cache.",
+        "In MQMS (Multi-Queue Multiprocessor Scheduling), each CPU has its own scheduling queue, which naturally provides cache affinity.",
+        "Work stealing in MQMS allows an idle CPU to take jobs from another CPU's queue to balance load.",
+        "SQMS (Single-Queue Multiprocessor Scheduling) inherently provides better cache affinity than MQMS because all CPUs share one queue and can see all jobs."
+      ],
+      "answer": 3,
+      "explain": "SQMS actually provides WORSE cache affinity than MQMS, not better. Because all CPUs pull from a single shared queue, a job may run on a different CPU each time it is scheduled, destroying cache locality. MQMS naturally provides better cache affinity because jobs stay in the same CPU's queue. The shared visibility of SQMS is about simplicity, not affinity."
+    },
+    {
+      "q": "[Spot the False Statement] Which of the following statements about memory virtualization (Ch. 12) is FALSE?",
+      "options": [
+        "Every address generated by a user-level program is a virtual address that must be translated to a physical address.",
+        "The OS provides each process the illusion of having its own large, private address space.",
+        "The OS performs the virtual-to-physical address translation in software each time a process accesses memory, using a translation function it installs at process creation.",
+        "Memory virtualization aims to provide ease of use, isolation between processes, and protection of OS memory."
+      ],
+      "answer": 2,
+      "explain": "The OS does NOT perform address translation in software on every memory access — that would be far too slow. Address translation is performed by hardware (the MMU and TLB) on every access, at full speed. The OS sets up the translation structures (page tables, base/bounds registers), but the hardware does the actual per-access translation. This is analogous to LDE for CPU virtualization: the hardware does the fast work, the OS sets up the rules."
+    },
+    {
+      "q": "[Match Mechanism to Problem] A process is stuck in an infinite loop and never makes any system calls or voluntarily yields the CPU. Which mechanism allows the OS to regain control?",
+      "options": [
+        "The trap instruction, because the infinite loop will eventually trigger a trap.",
+        "A timer interrupt, which fires periodically and transfers control to the OS regardless of what the process is doing.",
+        "The scheduler, which automatically preempts any process that has been running for more than one time slice.",
+        "The context switch handler, which runs inside the user process and checks whether it should yield."
+      ],
+      "answer": 1,
+      "explain": "A timer interrupt is a hardware mechanism that fires at regular intervals regardless of what the currently running process is doing. When it fires, the CPU transfers control to the OS's interrupt handler, giving the OS the chance to decide whether to continue running the current process or switch to another. Without timer interrupts (the cooperative approach), a process in an infinite loop would monopolize the CPU forever."
+    },
+    {
+      "q": "[Match Mechanism to Problem] A user program needs to perform a disk I/O operation, which requires privileged hardware access. Which mechanism enables this safely?",
+      "options": [
+        "The program directly accesses the disk hardware by switching itself to kernel mode.",
+        "The program issues a system call via a trap instruction, which transitions to kernel mode where the OS performs the I/O on the program's behalf.",
+        "The OS polls all running programs to see if any need I/O, and performs it when detected.",
+        "The program writes to a special shared-memory region that the disk controller monitors."
+      ],
+      "answer": 1,
+      "explain": "System calls use the trap mechanism: the user program executes a special trap instruction, the hardware raises the privilege level to kernel mode and jumps to a pre-defined OS trap handler. The OS then validates the request and performs the I/O. The program cannot switch itself to kernel mode or access hardware directly — that would violate the protection model."
+    },
+    {
+      "q": "[Match Mechanism to Problem] The OS needs to ensure that a newly created process starts executing at the correct entry point and in user mode, not kernel mode. Which mechanism achieves this?",
+      "options": [
+        "The OS uses a return-from-trap instruction after setting up the process's registers and stack, which drops privilege to user mode and jumps to the program's entry point.",
+        "The OS calls the process's main() function directly from kernel code, which automatically transitions to user mode.",
+        "The process itself is responsible for switching from kernel mode to user mode after it begins executing.",
+        "The OS writes the entry point address into the program counter register and the hardware automatically drops to user mode on the next clock cycle."
+      ],
+      "answer": 0,
+      "explain": "The OS sets up the new process's kernel stack with the appropriate register values (including the program counter pointing to the entry point and the status register set to user mode), then executes a return-from-trap instruction. This causes the hardware to pop these values, drop privilege to user mode, and begin executing at the specified entry point. This reuses the trap/return-from-trap mechanism elegantly."
+    },
+    {
+      "q": "[What Happens Next?] Process A is running in user mode when a timer interrupt fires. What is the correct sequence of events?",
+      "options": [
+        "1) Hardware saves A's registers to A's kernel stack and enters kernel mode. 2) OS timer interrupt handler runs. 3) OS decides to switch to Process B. 4) OS saves A's kernel registers and restores B's kernel registers. 5) OS returns-from-trap into B's user-mode context.",
+        "1) OS saves A's user registers to A's PCB. 2) Hardware switches to kernel mode. 3) OS runs the scheduler. 4) OS loads B's registers. 5) B resumes in user mode.",
+        "1) Hardware pauses Process A. 2) OS saves A's state to disk. 3) OS loads B's state from disk. 4) Hardware resumes Process B.",
+        "1) Process A saves its own registers. 2) Process A calls the scheduler. 3) Scheduler picks Process B. 4) Process B restores its own registers."
+      ],
+      "answer": 0,
+      "explain": "There are two levels of saving/restoring. First, the hardware automatically saves the running process's registers onto its kernel stack and switches to kernel mode (this is what happens on any interrupt). Then the OS interrupt handler runs the scheduler, and if it decides to context switch, the OS (in software) saves the current kernel-context registers and restores the next process's kernel-context registers. Finally, a return-from-trap restores the next process's user-mode state. The key insight is the two-level save/restore: hardware does the first, OS does the second."
+    },
+    {
+      "q": "[What Happens Next?] An MLFQ scheduler has 3 priority queues (Q2 highest, Q0 lowest). A new job X arrives and begins executing. After using up its full time slice on Q2 without completing, what happens to X?",
+      "options": [
+        "X remains on Q2 because it is still a new job and gets another chance.",
+        "X is moved down to Q1 because MLFQ interprets using the full time slice as evidence that X is CPU-bound rather than interactive.",
+        "X is immediately moved to Q0 (the lowest queue) because it did not complete within one time slice.",
+        "X is terminated because it exceeded its allocated time."
+      ],
+      "answer": 1,
+      "explain": "MLFQ uses observed behavior to infer job characteristics. A job that uses its entire time slice (rather than giving up the CPU early for I/O) is treated as more likely CPU-bound and is demoted one level. It drops from Q2 to Q1, not all the way to Q0 — the demotion is gradual, giving the job a chance to redeem itself at each level."
+    },
+    {
+      "q": "[What Happens Next?] In a lottery scheduler, Process A holds 75 tickets and Process B holds 25 tickets (100 total). The scheduler draws ticket number 80. What happens?",
+      "options": [
+        "Process A runs because it holds the majority of tickets.",
+        "Process B runs because ticket 80 falls in B's range (tickets 76-100).",
+        "The ticket is invalid and a new drawing occurs.",
+        "Both processes share the CPU for this time slice proportionally."
+      ],
+      "answer": 1,
+      "explain": "The lottery scheduler traverses the process list accumulating ticket counts. Process A holds tickets 0-74 (75 tickets). Process B holds tickets 75-99 (25 tickets). Ticket number 80 falls within B's range, so B is selected to run. Despite having fewer tickets, B wins this particular lottery — which is expected to happen about 25% of the time."
+    },
+    {
+      "q": "[What Happens Next?] In a stride scheduler, Process A has stride 100 (100 tickets) and Process B has stride 200 (50 tickets). Both start with pass value 0. After three scheduling decisions, what are their pass values?",
+      "options": [
+        "A: pass=300, B: pass=0. A was chosen all three times because its stride is lower.",
+        "A: pass=200, B: pass=200. A was chosen twice (pass: 0→100→200), B once (pass: 0→200), achieving proportional sharing.",
+        "A: pass=100, B: pass=200. Each was chosen once, then A again, giving A pass=200 and B pass=200.",
+        "A: pass=150, B: pass=150. The passes are averaged after each decision."
+      ],
+      "answer": 1,
+      "explain": "The stride scheduler always picks the process with the lowest pass value. Initially both are 0; say A is picked first (pass: 0→100). Now A=100, B=0; B is picked (pass: 0→200). Now A=100, B=200; A is picked (pass: 100→200). After 3 decisions: A ran twice, B ran once, and both have pass=200. This gives A twice the CPU share, matching its 2:1 ticket ratio — deterministic proportional sharing."
+    },
+    {
+      "q": "[Cross-Chapter Synthesis] Why does MLFQ fundamentally depend on the timer interrupt mechanism (Chapter 6) to function correctly?",
+      "options": [
+        "Without timer interrupts, MLFQ cannot sort jobs into different queues.",
+        "Timer interrupts provide the mechanism to preempt running jobs, which is essential for MLFQ to enforce time slices and demote CPU-bound jobs — without preemption, a CPU-bound job on the highest queue would run forever.",
+        "Timer interrupts are needed to periodically boost all jobs to the highest queue.",
+        "MLFQ uses timer interrupts to measure job arrival times for the SJF component of the algorithm."
+      ],
+      "answer": 1,
+      "explain": "MLFQ's core mechanism is observing whether a job uses its entire time slice (suggesting CPU-bound) or gives up the CPU early (suggesting interactive). This observation is only possible if the OS can preempt a running job when its time slice expires, which requires timer interrupts. Without timer interrupts, a CPU-bound job on the highest priority queue would monopolize the CPU, and MLFQ would degenerate into a non-preemptive priority scheduler."
+    },
+    {
+      "q": "[Cross-Chapter Synthesis] How does the concept of virtual addresses (Ch. 12) relate to the process abstraction (Ch. 4)?",
+      "options": [
+        "They are unrelated — virtual addresses are a memory concept and the process abstraction is a CPU concept.",
+        "Virtual addresses make the process abstraction complete: a process is not just an illusion of having its own CPU (CPU virtualization), but also an illusion of having its own private memory. Together they create the full illusion of a dedicated machine.",
+        "Virtual addresses are used only by the OS kernel, not by user processes, so they do not affect the process abstraction.",
+        "The process abstraction requires physical addresses to function; virtual addresses are an optional optimization."
+      ],
+      "answer": 1,
+      "explain": "A process is the OS's abstraction of a running program. CPU virtualization (LDE, scheduling) gives each process the illusion of its own dedicated CPU. Memory virtualization (virtual addresses, address spaces) gives each process the illusion of its own large private memory. Together, these two virtualizations create the complete illusion that each process has its own dedicated machine. This is the central theme connecting chapters 4-12."
+    },
+    {
+      "q": "[Cross-Chapter Synthesis] A malicious process tries to 'game' the MLFQ scheduler by issuing a spurious I/O call just before its time slice expires, then immediately resuming computation. This exploits the interaction between which two OS mechanisms?",
+      "options": [
+        "Trap handling and memory management — the I/O call causes a page fault that confuses the scheduler.",
+        "System calls (traps) and the MLFQ priority adjustment rules — the process uses the trap mechanism to trick MLFQ into thinking it is interactive, keeping it at high priority.",
+        "Context switching and cache affinity — the I/O call forces a context switch that warms the cache.",
+        "Timer interrupts and proportional-share scheduling — the I/O call resets the lottery ticket count."
+      ],
+      "answer": 1,
+      "explain": "The gaming attack exploits the system call (trap) mechanism in combination with MLFQ's policy of keeping I/O-heavy jobs at high priority. By issuing a system call for I/O just before the time slice expires, the process relinquishes the CPU 'voluntarily,' fooling MLFQ into classifying it as interactive (I/O-bound) and keeping it at high priority. The fix is to track total CPU time used at each level, not just per-time-slice usage."
+    },
+    {
+      "q": "[Cross-Chapter Synthesis] Both CPU scheduling and memory virtualization follow the same design pattern from OSTEP. Which pattern best describes this?",
+      "options": [
+        "The OS performs every operation on behalf of processes in software, ensuring maximum control.",
+        "Hardware and OS cooperate: the OS sets up rules/policies (trap tables, page tables, scheduling parameters) and the hardware enforces them efficiently (privilege modes, TLB lookups, timer interrupts) — neither works alone.",
+        "The hardware handles everything autonomously; the OS is only needed at boot time.",
+        "Processes manage their own resources and the OS merely provides a library of utility functions."
+      ],
+      "answer": 1,
+      "explain": "The recurring OSTEP theme is the OS-hardware partnership. For CPU virtualization: the OS sets up trap tables and timer intervals, hardware enforces privilege modes and delivers interrupts. For memory virtualization: the OS sets up page tables and base/bounds, hardware (MMU/TLB) does per-access translation. This division gives both performance (hardware speed) and control (OS policy). Neither the OS alone (too slow) nor hardware alone (not flexible enough) could achieve this."
+    },
+    {
+      "q": "[Why, Not What] Why does the OS set up the trap table at boot time rather than allowing it to be configured later by running processes?",
+      "options": [
+        "Because the hardware only supports writing the trap table once and the register becomes read-only after boot.",
+        "Because if user processes could install their own trap handlers, they could redirect system calls to their own code running in kernel mode, completely subverting OS security and gaining unrestricted hardware access.",
+        "Because trap handlers never need to change, so configuring them once is sufficient for simplicity.",
+        "Because the trap table must be stored in ROM, which can only be written during manufacturing."
+      ],
+      "answer": 1,
+      "explain": "The trap table determines what code runs in kernel mode when a trap, interrupt, or exception occurs. If a user process could modify it, the process could redirect a system call to its own code — which would then execute with full kernel privileges. This would allow arbitrary access to hardware, other processes' memory, and OS data structures. Setting up the trap table is a privileged operation restricted to boot time (when only the OS is running) precisely to prevent this attack."
+    },
+    {
+      "q": "[Why, Not What] Why does the OS adopt a 'paranoid' stance (as described in Ch. 11) where it assumes processes are potentially hostile, rather than trusting them to behave correctly?",
+      "options": [
+        "Because the OS developers are pessimists who over-engineer solutions.",
+        "Because a single buggy or malicious process could crash the entire system, corrupt other processes' data, or monopolize resources if the OS trusted it — isolation and protection require assuming the worst.",
+        "Because paranoid design makes the OS faster by reducing the number of system calls needed.",
+        "Because early operating systems did trust processes and found that this improved security in practice."
+      ],
+      "answer": 1,
+      "explain": "The OS must protect the system as a whole. A single process — whether malicious or simply buggy — could write over the OS's memory, read other processes' data, monopolize the CPU, or access hardware directly if not constrained. Since the OS cannot distinguish between a bug and an attack, and since multi-user systems run code from multiple untrusted sources, the safe design is to treat all processes as potentially hostile and enforce protection via hardware mechanisms."
+    },
+    {
+      "q": "[Why, Not What] Why can't user programs execute privileged instructions (like modifying the trap table or disabling interrupts) even if they 'promise' to use them responsibly?",
+      "options": [
+        "Because user programs run too slowly to execute these instructions before the OS notices.",
+        "Because the hardware enforces privilege levels: the CPU checks whether it is in kernel mode before executing privileged instructions, and rejects them in user mode — no software promise can bypass a hardware check.",
+        "Because privileged instructions are encrypted and only the OS has the decryption key.",
+        "Because the compiler removes privileged instructions from user programs during compilation."
+      ],
+      "answer": 1,
+      "explain": "Protection is enforced in hardware, not by convention or trust. The CPU has at least two privilege levels (user mode and kernel mode). Certain instructions are marked as privileged and can only execute in kernel mode. If a user-mode program attempts a privileged instruction, the hardware generates a protection fault (exception), transferring control to the OS. This is fundamental to LDE: no amount of software promises can substitute for hardware enforcement."
+    },
+    {
+      "q": "[Comprehensive] The OSTEP authors describe a fundamental tension at the heart of CPU scheduling. Which of the following best captures this tension?",
+      "options": [
+        "The tension between using more memory for scheduling data structures vs. saving memory for processes.",
+        "The tension between turnaround time (completing jobs quickly, favoring short jobs running to completion) and response time (ensuring all jobs get frequent CPU access, requiring preemption and time-sharing) — optimizing for one inherently hurts the other.",
+        "The tension between running in kernel mode vs. user mode during scheduling decisions.",
+        "The tension between supporting many CPUs and supporting many processes on a single CPU."
+      ],
+      "answer": 1,
+      "explain": "This is the central scheduling tradeoff in OSTEP. SJF/STCF optimize turnaround time by running short jobs to completion — but long jobs wait. RR optimizes response time by giving every job frequent small time slices — but context-switching overhead and lack of run-to-completion hurts turnaround time. MLFQ attempts to balance both, but the fundamental tension remains: any time spent on fairness/responsiveness is time not spent on finishing jobs quickly, and vice versa."
+    }
+  ];
+
+  const els = {
+    qText: document.getElementById('qText'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  const state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    let q = deepClone(ORIGINAL);
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        const opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        const newOptions = opts.map(function(o) { return o.text; });
+        const newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    let correct = 0;
+    let answered = 0;
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    const s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    const pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    const item = state.quiz[state.idx];
+    const correctIdx = item.answer;
+    const isCorrect = chosenIdx === correctIdx;
+    const correctText = item.options[correctIdx];
+
+    const tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    let html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    const s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    const pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    const missed = [];
+    for (let i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        const it = state.quiz[i];
+        const chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    let missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    const item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    els.opts.innerHTML = '';
+    const chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      const alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

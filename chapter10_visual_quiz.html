@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 10 Visual Quiz — Multiprocessor Scheduling</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+
+    /* ── visual diagram area ── */
+    .diagram {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in srgb, Canvas 97%, CanvasText 3%);
+      overflow-x: auto;
+    }
+
+    /* architecture boxes */
+    .arch {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .cpu-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .cpu-box, .cache-box, .mem-box, .bus-line {
+      border: 2px solid var(--fg);
+      border-radius: 6px;
+      padding: 8px 18px;
+      text-align: center;
+      font-weight: 700;
+      font-size: .9rem;
+      font-family: var(--mono);
+    }
+    .cpu-box { background: color-mix(in srgb, #6366f1 25%, Canvas 75%); }
+    .cache-box {
+      background: color-mix(in srgb, #f59e0b 20%, Canvas 80%);
+      font-size: .82rem;
+    }
+    .cache-box.highlight {
+      border-color: var(--bad);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 30%, transparent 70%);
+    }
+    .cache-box.good-hl {
+      border-color: var(--good);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 30%, transparent 70%);
+    }
+    .mem-box { background: color-mix(in srgb, #10b981 15%, Canvas 85%); }
+    .bus-line {
+      border: none;
+      border-top: 3px dashed var(--muted);
+      border-radius: 0;
+      padding: 4px 30px;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .connector {
+      width: 2px;
+      height: 18px;
+      background: var(--fg);
+    }
+
+    /* scheduling grid */
+    .sched-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: .88rem;
+    }
+    .sched-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sched-label {
+      width: 56px;
+      flex-shrink: 0;
+      font-weight: 700;
+      text-align: right;
+      padding-right: 6px;
+      font-size: .82rem;
+    }
+    .sched-cell {
+      width: 34px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: .82rem;
+      flex-shrink: 0;
+    }
+    .sched-cell.a { background: color-mix(in srgb, #6366f1 30%, Canvas 70%); }
+    .sched-cell.b { background: color-mix(in srgb, #f59e0b 30%, Canvas 70%); }
+    .sched-cell.c { background: color-mix(in srgb, #10b981 30%, Canvas 70%); }
+    .sched-cell.d { background: color-mix(in srgb, #ef4444 25%, Canvas 75%); }
+    .sched-cell.e { background: color-mix(in srgb, #8b5cf6 25%, Canvas 75%); }
+    .sched-cell.idle {
+      background: color-mix(in srgb, Canvas 85%, CanvasText 15%);
+      color: var(--muted);
+      font-style: italic;
+      font-weight: 400;
+    }
+    .sched-cell.q-mark {
+      background: color-mix(in srgb, var(--focus) 15%, Canvas 85%);
+      border: 2px dashed var(--focus);
+      font-size: 1rem;
+    }
+    .sched-dots {
+      color: var(--muted);
+      padding-left: 4px;
+      font-size: .9rem;
+    }
+
+    /* queue diagram */
+    .queue-vis {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .queue-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .queue-title {
+      font-weight: 700;
+      font-size: .85rem;
+      font-family: var(--mono);
+    }
+    .queue-chain {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-family: var(--mono);
+      font-size: .85rem;
+    }
+    .queue-node {
+      width: 30px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--fg);
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .queue-node.a { background: color-mix(in srgb, #6366f1 30%, Canvas 70%); }
+    .queue-node.b { background: color-mix(in srgb, #f59e0b 30%, Canvas 70%); }
+    .queue-node.c { background: color-mix(in srgb, #10b981 30%, Canvas 70%); }
+    .queue-node.d { background: color-mix(in srgb, #ef4444 25%, Canvas 75%); }
+    .queue-node.empty {
+      border-style: dashed;
+      border-color: var(--muted);
+      color: var(--muted);
+    }
+    .queue-arrow { color: var(--muted); font-size: .9rem; }
+
+    /* caption under diagrams */
+    .diagram-caption {
+      margin-top: 8px;
+      text-align: center;
+      font-size: .85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 10 Visual Quiz — Multiprocessor Scheduling</h1>
+      <p class="subtitle">Visual &amp; interactive practice quiz. Diagrams cover cache coherence, SQMS, MQMS, load imbalance, migration, and work stealing.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: —</span>
+          <span class="pill" id="pillScore">Score: —</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading…</div>
+        <div id="diagramArea"></div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">&larr; Previous</button>
+            <button class="action" id="nextBtn">Next &rarr;</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 10 (Multiprocessor Scheduling) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file — open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  // ── Diagram renderers ──
+  // Each returns an HTML string for the diagram area
+
+  function diagramCacheCoherence1() {
+    return '<div class="diagram"><div class="arch">' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 0</div><div class="connector"></div>' +
+        '<div class="cache-box good-hl">Cache<br>A = D\'</div><div class="connector"></div>' +
+      '</div>' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 1</div><div class="connector"></div>' +
+        '<div class="cache-box highlight">Cache<br>A = ?</div><div class="connector"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:center;margin-top:4px">' +
+      '<div class="bus-line">&#8592; Bus &#8594;</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:center;margin-top:4px">' +
+      '<div class="mem-box">Memory: A = D</div>' +
+    '</div>' +
+    '<div class="diagram-caption">CPU 0 updated A from D to D\' in its cache. CPU 1 now reads A. What value does it get?</div>' +
+    '</div>';
+  }
+
+  function diagramBusSnooping() {
+    return '<div class="diagram"><div class="arch">' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 0</div><div class="connector"></div>' +
+        '<div class="cache-box">Cache<br>A = D\'</div><div class="connector"></div>' +
+      '</div>' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 1</div><div class="connector"></div>' +
+        '<div class="cache-box good-hl">Cache<br>A = D\' <span style="font-size:.7rem">(updated)</span></div><div class="connector"></div>' +
+      '</div>' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 2</div><div class="connector"></div>' +
+        '<div class="cache-box highlight">Cache<br>A <span style="font-size:.7rem">(invalidated)</span></div><div class="connector"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:center;margin-top:4px">' +
+      '<div class="bus-line">&#128065; Bus snooping active</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:center;margin-top:4px">' +
+      '<div class="mem-box">Memory: A = D</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Each cache monitors the bus. When CPU 0 writes A, other caches react.</div>' +
+    '</div>';
+  }
+
+  function diagramSingleCPU() {
+    return '<div class="diagram"><div class="arch">' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU</div><div class="connector"></div>' +
+        '<div class="cache-box">Cache<br><span style="font-size:.7rem">small &amp; fast</span></div><div class="connector"></div>' +
+        '<div class="mem-box">Memory<br><span style="font-size:.7rem">large &amp; slow</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Figure 10.1: Single CPU with cache</div>' +
+    '</div>';
+  }
+
+  function diagramMultiCPU() {
+    return '<div class="diagram"><div class="arch">' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 0</div><div class="connector"></div>' +
+        '<div class="cache-box">Cache</div><div class="connector"></div>' +
+      '</div>' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 1</div><div class="connector"></div>' +
+        '<div class="cache-box">Cache</div><div class="connector"></div>' +
+      '</div>' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 2</div><div class="connector"></div>' +
+        '<div class="cache-box">Cache</div><div class="connector"></div>' +
+      '</div>' +
+      '<div class="cpu-unit">' +
+        '<div class="cpu-box">CPU 3</div><div class="connector"></div>' +
+        '<div class="cache-box">Cache</div><div class="connector"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:center;margin-top:4px">' +
+      '<div class="bus-line">&#8592; Shared Bus &#8594;</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:center;margin-top:4px">' +
+      '<div class="mem-box">Shared Memory</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Figure 10.2: Multiple CPUs sharing memory via a bus</div>' +
+    '</div>';
+  }
+
+  function diagramSQMSBounce() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'A',c:'a'},{j:'E',c:'e'},{j:'D',c:'d'},{j:'C',c:'c'},{j:'B',c:'b'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'A',c:'a'},{j:'E',c:'e'},{j:'D',c:'d'},{j:'C',c:'c'}]},
+      {label:'CPU 2', cells:[{j:'C',c:'c'},{j:'B',c:'b'},{j:'A',c:'a'},{j:'E',c:'e'},{j:'D',c:'d'}]},
+      {label:'CPU 3', cells:[{j:'D',c:'d'},{j:'C',c:'c'},{j:'B',c:'b'},{j:'A',c:'a'},{j:'E',c:'e'}]},
+    ];
+    return makeSchedGrid(rows, 'SQMS: Each job bounces to a different CPU every time slice');
+  }
+
+  function diagramSQMSAffinity() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'A',c:'a'},{j:'E',c:'e'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'B',c:'b'},{j:'E',c:'e'},{j:'B',c:'b'},{j:'B',c:'b'}]},
+      {label:'CPU 2', cells:[{j:'C',c:'c'},{j:'C',c:'c'},{j:'C',c:'c'},{j:'E',c:'e'},{j:'C',c:'c'}]},
+      {label:'CPU 3', cells:[{j:'D',c:'d'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'E',c:'e'}]},
+    ];
+    return makeSchedGrid(rows, 'SQMS with affinity: A-D stay on their CPUs, only E migrates');
+  }
+
+  function diagramMQMSBalanced() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'A',c:'a'},{j:'A',c:'a'},{j:'C',c:'c'},{j:'C',c:'c'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'C',c:'c'},{j:'C',c:'c'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'B',c:'b'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'}]},
+    ];
+    return makeSchedGrid(rows, 'MQMS with round-robin: Q0 has {A,C}, Q1 has {B,D} — balanced');
+  }
+
+  function diagramMQMSImbalance() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'B',c:'b'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'}]},
+    ];
+    return '<div class="diagram">' +
+      '<div class="queue-vis" style="margin-bottom:14px">' +
+        '<div class="queue-col"><div class="queue-title">Q0</div>' +
+          '<div class="queue-chain"><div class="queue-arrow">&#8594;</div><div class="queue-node a">A</div></div>' +
+        '</div>' +
+        '<div class="queue-col"><div class="queue-title">Q1</div>' +
+          '<div class="queue-chain"><div class="queue-arrow">&#8594;</div><div class="queue-node b">B</div><div class="queue-arrow">&#8594;</div><div class="queue-node d">D</div></div>' +
+        '</div>' +
+      '</div>' +
+      makeSchedGridInner(rows) +
+      '<div class="diagram-caption">After C finishes: Q0 has only A, Q1 still has B and D — load imbalance</div>' +
+    '</div>';
+  }
+
+  function diagramMQMSWorstCase() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'—',c:'idle'},{j:'—',c:'idle'},{j:'—',c:'idle'},{j:'—',c:'idle'},{j:'—',c:'idle'},{j:'—',c:'idle'},{j:'—',c:'idle'},{j:'—',c:'idle'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'B',c:'b'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'}]},
+    ];
+    return '<div class="diagram">' +
+      '<div class="queue-vis" style="margin-bottom:14px">' +
+        '<div class="queue-col"><div class="queue-title">Q0</div>' +
+          '<div class="queue-chain"><div class="queue-arrow">&#8594;</div><div class="queue-node empty">&empty;</div></div>' +
+        '</div>' +
+        '<div class="queue-col"><div class="queue-title">Q1</div>' +
+          '<div class="queue-chain"><div class="queue-arrow">&#8594;</div><div class="queue-node b">B</div><div class="queue-arrow">&#8594;</div><div class="queue-node d">D</div></div>' +
+        '</div>' +
+      '</div>' +
+      makeSchedGridInner(rows) +
+      '<div class="diagram-caption">Worst case: both A and C finished. CPU 0 sits completely idle!</div>' +
+    '</div>';
+  }
+
+  function diagramMigration() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'A',c:'a'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'B',c:'b'},{j:'A',c:'a'},{j:'B',c:'b'},{j:'A',c:'a'},{j:'B',c:'b'},{j:'B',c:'b'},{j:'B',c:'b'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'D',c:'d'},{j:'B',c:'b'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'A',c:'a'},{j:'D',c:'d'},{j:'A',c:'a'},{j:'D',c:'d'}]},
+    ];
+    return '<div class="diagram">' +
+      '<div style="text-align:center;margin-bottom:8px;font-size:.85rem;color:var(--muted)">&#8595; migration happens here (B moves to CPU 0)</div>' +
+      makeSchedGridInner(rows) +
+      '<div class="diagram-caption">Continuous migration balances load: B moves to CPU 0, then A and D swap periodically</div>' +
+    '</div>';
+  }
+
+  function diagramWorkStealing() {
+    return '<div class="diagram">' +
+      '<div class="queue-vis">' +
+        '<div class="queue-col"><div class="queue-title" style="color:var(--bad)">Q0 (source)</div>' +
+          '<div class="queue-chain"><div class="queue-arrow">&#8594;</div><div class="queue-node empty">&empty;</div></div>' +
+          '<div style="font-size:.78rem;color:var(--muted);margin-top:4px">few/no jobs</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;font-size:1.5rem;color:var(--focus);padding:0 10px">&#10229;<br><span style="font-size:.7rem">steal!</span></div>' +
+        '<div class="queue-col"><div class="queue-title" style="color:var(--good)">Q1 (target)</div>' +
+          '<div class="queue-chain"><div class="queue-arrow">&#8594;</div><div class="queue-node a">A</div><div class="queue-arrow">&#8594;</div><div class="queue-node b">B</div><div class="queue-arrow">&#8594;</div><div class="queue-node c">C</div><div class="queue-arrow">&#8594;</div><div class="queue-node d">D</div></div>' +
+          '<div style="font-size:.78rem;color:var(--muted);margin-top:4px">many jobs</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="diagram-caption">Work stealing: Q0 peeks at Q1, sees more jobs, and steals one to balance load</div>' +
+    '</div>';
+  }
+
+  function diagramListPop() {
+    return '<div class="diagram">' +
+      '<div style="font-family:var(--mono);font-size:.82rem;line-height:1.6">' +
+        '<div style="color:var(--muted)">// Two CPUs execute simultaneously:</div>' +
+        '<div style="display:flex;gap:30px;flex-wrap:wrap;margin-top:8px">' +
+          '<div style="flex:1;min-width:200px">' +
+            '<div style="font-weight:700;margin-bottom:4px;color:color-mix(in srgb, #6366f1 80%, Canvas 20%)">Thread on CPU 0</div>' +
+            '<div>tmp = head&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)">// gets node X</span></div>' +
+            '<div>value = head-&gt;value</div>' +
+            '<div>head = head-&gt;next</div>' +
+            '<div>free(tmp)</div>' +
+          '</div>' +
+          '<div style="flex:1;min-width:200px">' +
+            '<div style="font-weight:700;margin-bottom:4px;color:color-mix(in srgb, #f59e0b 80%, Canvas 20%)">Thread on CPU 1</div>' +
+            '<div>tmp = head&nbsp;&nbsp;&nbsp;<span style="color:var(--muted)">// also gets X!</span></div>' +
+            '<div>value = head-&gt;value</div>' +
+            '<div>head = head-&gt;next</div>' +
+            '<div>free(tmp)&nbsp;&nbsp;&nbsp;<span style="color:var(--bad)">// double free!</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="diagram-caption">Race condition: both threads read the same head pointer and attempt to free the same node</div>' +
+    '</div>';
+  }
+
+  function diagramScalability() {
+    return '<div class="diagram">' +
+      '<div style="display:flex;align-items:flex-end;gap:8px;justify-content:center;height:140px">' +
+        makeBar('1', 95, '#10b981') +
+        makeBar('2', 85, '#10b981') +
+        makeBar('4', 65, '#f59e0b') +
+        makeBar('8', 40, '#f59e0b') +
+        makeBar('16', 22, '#ef4444') +
+        makeBar('32', 12, '#ef4444') +
+      '</div>' +
+      '<div style="text-align:center;font-size:.78rem;color:var(--muted);margin-top:6px">Number of CPUs contending for a single lock</div>' +
+      '<div style="text-align:center;font-size:.78rem;color:var(--muted)">Bar height = relative throughput</div>' +
+      '<div class="diagram-caption">SQMS scalability problem: as CPUs increase, lock contention destroys throughput</div>' +
+    '</div>';
+  }
+
+  function makeBar(label, height, color) {
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">' +
+      '<div style="width:36px;height:' + height + 'px;background:color-mix(in srgb, ' + color + ' 50%, Canvas 50%);border:1px solid color-mix(in srgb, ' + color + ' 80%, Canvas 20%);border-radius:4px 4px 0 0"></div>' +
+      '<div style="font-size:.75rem;font-family:var(--mono);font-weight:700">' + label + '</div>' +
+    '</div>';
+  }
+
+  function diagramLinuxSchedulers() {
+    return '<div class="diagram">' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">' +
+        '<div style="flex:1;min-width:140px;border:2px solid var(--fg);border-radius:10px;padding:12px;text-align:center">' +
+          '<div style="font-weight:700;font-family:var(--mono)">O(1)</div>' +
+          '<div style="font-size:.8rem;color:var(--muted);margin-top:4px">Priority-based<br>(like MLFQ)</div>' +
+          '<div style="margin-top:6px;font-size:.78rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;display:inline-block">Multi-Queue</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:140px;border:2px solid var(--fg);border-radius:10px;padding:12px;text-align:center">' +
+          '<div style="font-weight:700;font-family:var(--mono)">CFS</div>' +
+          '<div style="font-size:.8rem;color:var(--muted);margin-top:4px">Proportional-share<br>(like Stride)</div>' +
+          '<div style="margin-top:6px;font-size:.78rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;display:inline-block">Multi-Queue</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:140px;border:2px solid var(--fg);border-radius:10px;padding:12px;text-align:center">' +
+          '<div style="font-weight:700;font-family:var(--mono)">BFS</div>' +
+          '<div style="font-size:.8rem;color:var(--muted);margin-top:4px">Proportional-share<br>(EEVDF)</div>' +
+          '<div style="margin-top:6px;font-size:.78rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;display:inline-block">Single-Queue</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="diagram-caption">Three Linux multiprocessor schedulers and their approaches</div>' +
+    '</div>';
+  }
+
+  function diagramCacheAffinity() {
+    return '<div class="diagram">' +
+      '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start">' +
+        '<div style="text-align:center">' +
+          '<div style="font-weight:700;font-size:.85rem;margin-bottom:6px;color:var(--bad)">No affinity (cold cache)</div>' +
+          '<div class="arch" style="gap:12px">' +
+            '<div class="cpu-unit"><div class="cpu-box" style="font-size:.78rem">CPU 0</div><div class="connector"></div><div class="cache-box highlight" style="font-size:.72rem">Cache<br>Process P data</div></div>' +
+            '<div style="font-size:1.2rem;align-self:center">&#8594;</div>' +
+            '<div class="cpu-unit"><div class="cpu-box" style="font-size:.78rem">CPU 1</div><div class="connector"></div><div class="cache-box highlight" style="font-size:.72rem">Cache<br>(empty for P)</div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:center">' +
+          '<div style="font-weight:700;font-size:.85rem;margin-bottom:6px;color:var(--good)">With affinity (warm cache)</div>' +
+          '<div class="arch" style="gap:12px">' +
+            '<div class="cpu-unit"><div class="cpu-box" style="font-size:.78rem">CPU 0</div><div class="connector"></div><div class="cache-box good-hl" style="font-size:.72rem">Cache<br>Process P data</div></div>' +
+            '<div style="font-size:1.2rem;align-self:center">&#8635;</div>' +
+            '<div class="cpu-unit"><div class="cpu-box" style="font-size:.78rem">CPU 0</div><div class="connector"></div><div class="cache-box good-hl" style="font-size:.72rem">Cache<br>P data (warm!)</div></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="diagram-caption">Cache affinity: keeping a process on the same CPU lets it reuse cached data</div>' +
+    '</div>';
+  }
+
+  function diagramFillInSchedule() {
+    var rows = [
+      {label:'CPU 0', cells:[{j:'A',c:'a'},{j:'E',c:'e'},{j:'A',c:'a'},{j:'A',c:'a'},{j:'?',c:'q-mark'}]},
+      {label:'CPU 1', cells:[{j:'B',c:'b'},{j:'B',c:'b'},{j:'E',c:'e'},{j:'B',c:'b'},{j:'?',c:'q-mark'}]},
+      {label:'CPU 2', cells:[{j:'C',c:'c'},{j:'C',c:'c'},{j:'C',c:'c'},{j:'E',c:'e'},{j:'?',c:'q-mark'}]},
+      {label:'CPU 3', cells:[{j:'D',c:'d'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'D',c:'d'},{j:'?',c:'q-mark'}]},
+    ];
+    return makeSchedGrid(rows, 'SQMS with affinity: jobs A-D are pinned, E migrates. What fills the ? slots?');
+  }
+
+  function makeSchedGridInner(rows) {
+    var html = '<div class="sched-grid">';
+    rows.forEach(function(r) {
+      html += '<div class="sched-row"><div class="sched-label">' + r.label + '</div>';
+      r.cells.forEach(function(c) {
+        html += '<div class="sched-cell ' + c.c + '">' + c.j + '</div>';
+      });
+      html += '<div class="sched-dots">...</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function makeSchedGrid(rows, caption) {
+    return '<div class="diagram">' + makeSchedGridInner(rows) +
+      '<div class="diagram-caption">' + caption + '</div></div>';
+  }
+
+  // ── Quiz data ──
+  var ORIGINAL = [
+    {
+      q: "Look at this architecture diagram. What key problem arises when we move from one CPU to multiple CPUs sharing memory?",
+      diagram: diagramMultiCPU,
+      options: [
+        "Memory becomes slower because it must be physically larger",
+        "Cache coherence: each CPU's cache may hold stale data that another CPU has modified",
+        "CPUs must take turns accessing memory one at a time, so only one can run",
+        "The shared bus prevents any CPU from caching data"
+      ],
+      answer: 1,
+      explain: "With multiple CPUs each having their own cache, one CPU can modify a cached value while another CPU still holds the old value. This cache coherence problem is the fundamental new challenge in multiprocessor systems."
+    },
+    {
+      q: "In this scenario, CPU 0 read address A (value D) and then modified it to D' in its cache. CPU 1 now reads address A. What value does CPU 1 get, and why is this a problem?",
+      diagram: diagramCacheCoherence1,
+      options: [
+        "CPU 1 gets D' because the bus automatically forwards updated values",
+        "CPU 1 gets D (the stale value from main memory) because CPU 0's update is only in CPU 0's cache — this is the cache coherence problem",
+        "CPU 1 gets an error because the memory address is locked by CPU 0",
+        "CPU 1 gets 0 because the cache was cleared when CPU 0 wrote"
+      ],
+      answer: 1,
+      explain: "CPU 1 reads from main memory and gets the old value D, not the updated D' that is only in CPU 0's cache. Without a coherence mechanism, CPU 1 has stale data — this is the classic cache coherence problem."
+    },
+    {
+      q: "This diagram shows bus snooping in action. What are the two ways a cache can react when it detects (via snooping) that another CPU wrote to an address it has cached?",
+      diagram: diagramBusSnooping,
+      options: [
+        "Lock the bus and halt all other CPUs until the write completes",
+        "Invalidate its cached copy (remove it) or update its copy to the new value",
+        "Copy the entire cache of the writing CPU to replace its own cache",
+        "Disable caching for that address permanently"
+      ],
+      answer: 1,
+      explain: "When a cache detects a write to an address it holds, it can either invalidate its copy (forcing a re-fetch on next access) or update its copy with the new value. These are the two basic bus snooping strategies."
+    },
+    {
+      q: "Even with hardware cache coherence (bus snooping) in place, this code has a serious bug when run on two CPUs simultaneously. What is it, and what's the fix?",
+      diagram: diagramListPop,
+      options: [
+        "The code is correct — hardware coherence ensures proper ordering of all operations",
+        "Both threads read the same head pointer and both free the same node (double free). The fix is to add a lock (mutex) around the critical section",
+        "The code will deadlock because both CPUs try to write to head at the same time",
+        "The free() call is not cache-coherent, so it corrupts memory"
+      ],
+      answer: 1,
+      explain: "Cache coherence makes caches consistent, but doesn't provide atomicity for multi-step operations. Both threads can read the same head, remove the same node, and double-free it. A lock is needed to make the operation atomic."
+    },
+    {
+      q: "This chart shows what happens to throughput as more CPUs contend for a single shared lock (as in SQMS). What does this illustrate?",
+      diagram: diagramScalability,
+      options: [
+        "CPUs get faster as you add more, so each needs less time with the lock",
+        "SQMS has poor scalability: as the number of CPUs grows, lock contention increases and throughput drops dramatically",
+        "The system runs out of memory with too many CPUs",
+        "Context switching becomes more expensive with more CPUs"
+      ],
+      answer: 1,
+      explain: "This is the scalability problem with SQMS. A single shared lock becomes a bottleneck: more CPUs means more contention for that lock, so CPUs spend increasing time waiting rather than doing useful work."
+    },
+    {
+      q: "Examine this SQMS schedule with 5 jobs on 4 CPUs. What cache-related problem is visible in the pattern?",
+      diagram: diagramSQMSBounce,
+      options: [
+        "Some CPUs are idle while others have work",
+        "Each job runs on a different CPU every time slice, completely destroying cache affinity — the cache is always cold",
+        "Job E gets less CPU time than the others because there are 5 jobs but only 4 CPUs",
+        "The jobs are not sorted by shortest-job-first"
+      ],
+      answer: 1,
+      explain: "In this naive SQMS schedule, job A runs on CPU 0, then CPU 1, then CPU 2, etc. Each time it moves to a new CPU, it faces a cold cache. This bouncing pattern destroys any cache affinity benefit."
+    },
+    {
+      q: "Now look at this improved SQMS schedule. How does it address the cache affinity problem compared to the bouncing pattern?",
+      diagram: diagramSQMSAffinity,
+      options: [
+        "It runs all jobs on a single CPU to maximize cache reuse",
+        "Jobs A-D are pinned to their respective CPUs and only job E migrates, so most jobs enjoy warm caches",
+        "It runs each job for a longer time slice to amortize cache warm-up costs",
+        "It disables caching to avoid coherence overhead"
+      ],
+      answer: 1,
+      explain: "By keeping A-D on their respective CPUs, four out of five jobs always have warm caches. Only E migrates across CPUs, sacrificing its cache affinity to maintain fairness. This is a practical SQMS affinity optimization."
+    },
+    {
+      q: "In this SQMS affinity schedule, what should fill the ? slots in the 5th time slice to continue the pattern?",
+      diagram: diagramFillInSchedule,
+      options: [
+        "CPU 0: A, CPU 1: B, CPU 2: C, CPU 3: E — because it's E's turn to visit CPU 3",
+        "CPU 0: E, CPU 1: A, CPU 2: B, CPU 3: C — everyone rotates",
+        "CPU 0: A, CPU 1: B, CPU 2: C, CPU 3: D — all stay pinned, E takes a break",
+        "CPU 0: B, CPU 1: C, CPU 2: D, CPU 3: A — reverse the order"
+      ],
+      answer: 0,
+      explain: "Following the affinity pattern, A-D stay on their home CPUs. E has visited CPUs 0, 1, and 2, so in the 5th slice it visits CPU 3 (replacing D for one slice), keeping D on CPU 3 the rest of the time."
+    },
+    {
+      q: "This MQMS schedule shows the system after job C has finished. What problem is clearly visible?",
+      diagram: diagramMQMSImbalance,
+      options: [
+        "Jobs are running in the wrong order",
+        "Load imbalance: CPU 0 runs only A (100% CPU time), while B and D share CPU 1 (50% each) — A gets unfairly more CPU time",
+        "Cache affinity is broken because jobs move between CPUs",
+        "The scheduler is using FIFO instead of round-robin"
+      ],
+      answer: 1,
+      explain: "After C finishes, Q0 has only A while Q1 has B and D. Job A gets 100% of CPU 0 while B and D each get only 50% of CPU 1. This load imbalance is the fundamental problem with MQMS."
+    },
+    {
+      q: "This shows the MQMS worst case. Both A and C have finished. What fraction of the system's total CPU capacity is being wasted?",
+      diagram: diagramMQMSWorstCase,
+      options: [
+        "None — the system automatically rebalances",
+        "25% — one core out of four is idle",
+        "50% — CPU 0 is completely idle while CPU 1 does all the work",
+        "75% — only one core out of four is busy"
+      ],
+      answer: 2,
+      explain: "With CPU 0 completely idle and CPU 1 handling both B and D, exactly half the system's capacity is wasted. This is the worst-case MQMS imbalance: without migration, one CPU sits idle while another is overloaded."
+    },
+    {
+      q: "This diagram shows how continuous migration solves the load imbalance. What is the tradeoff of this approach?",
+      diagram: diagramMigration,
+      options: [
+        "Migration is free — there is no downside",
+        "Migrated jobs lose their cache affinity (cold cache on the new CPU), but the load becomes balanced across CPUs",
+        "Migration requires stopping all CPUs simultaneously",
+        "Only one job can be migrated during the entire system lifetime"
+      ],
+      answer: 1,
+      explain: "When B migrates from CPU 1 to CPU 0, it faces a cold cache on CPU 0. The benefit is balanced load, but the cost is lost cache affinity for migrated jobs. Balancing this tradeoff is the art of multiprocessor scheduling."
+    },
+    {
+      q: "Study this work-stealing diagram. What is the key tension that makes tuning work stealing difficult?",
+      diagram: diagramWorkStealing,
+      options: [
+        "Stealing always causes jobs to crash",
+        "Checking other queues too often adds high overhead (defeating MQMS scalability), but checking too rarely lets severe imbalances persist",
+        "Work stealing only works between adjacent CPUs",
+        "The stolen job must be recompiled for the target CPU"
+      ],
+      answer: 1,
+      explain: "If Q0 peeks at Q1 too frequently, the overhead of checking negates the scalability benefit of having separate queues. If it peeks too rarely, CPU 0 sits idle while Q1 is overloaded. Finding the right peek interval is a difficult tuning problem."
+    },
+    {
+      q: "Look at these three Linux schedulers. Which statement correctly describes their queue architectures?",
+      diagram: diagramLinuxSchedulers,
+      options: [
+        "All three use multi-queue architectures",
+        "All three use single-queue architectures",
+        "O(1) and CFS use multi-queue; BFS uses single-queue — proving both approaches can be successful",
+        "O(1) uses single-queue; CFS and BFS use multi-queue"
+      ],
+      answer: 2,
+      explain: "O(1) and CFS both use a multi-queue approach (one queue per CPU), while BFS uses a single-queue approach. The fact that all three have been used in Linux demonstrates that both SQMS and MQMS designs can work in practice."
+    },
+    {
+      q: "Study this diagram showing cache affinity. A process P runs on CPU 0, building up cached state. What happens if the scheduler moves P to CPU 1 for its next time slice?",
+      diagram: diagramCacheAffinity,
+      options: [
+        "P runs faster on CPU 1 because its cache is empty and there are no conflicts",
+        "P runs slower on CPU 1 because it faces a cold cache — all its data must be re-fetched from memory (and its TLB entries are also lost)",
+        "P runs at the same speed because hardware coherence instantly copies the cache",
+        "P cannot run on CPU 1 at all — it is permanently bound to CPU 0"
+      ],
+      answer: 1,
+      explain: "Moving P to CPU 1 means its working set is not in CPU 1's cache. P must re-fetch everything from main memory (cold cache), and its TLB entries on CPU 0 are also useless. This is why cache affinity matters — keeping P on CPU 0 lets it reuse its warm cache."
+    },
+    {
+      q: "Comparing SQMS and MQMS: which correctly summarizes their tradeoffs?",
+      diagram: function() {
+        return '<div class="diagram"><div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">' +
+          '<div style="flex:1;min-width:200px;border:2px solid var(--fg);border-radius:10px;padding:14px">' +
+            '<div style="font-weight:700;font-family:var(--mono);text-align:center;margin-bottom:8px">SQMS</div>' +
+            '<div style="font-size:.85rem"><span style="color:var(--good)">+</span> Simple to implement<br><span style="color:var(--bad)">-</span> Poor scalability (lock contention)<br><span style="color:var(--bad)">-</span> Poor cache affinity (jobs bounce)</div>' +
+          '</div>' +
+          '<div style="flex:1;min-width:200px;border:2px solid var(--fg);border-radius:10px;padding:14px">' +
+            '<div style="font-weight:700;font-family:var(--mono);text-align:center;margin-bottom:8px">MQMS</div>' +
+            '<div style="font-size:.85rem"><span style="color:var(--good)">+</span> Scalable (less contention)<br><span style="color:var(--good)">+</span> Good cache affinity<br><span style="color:var(--bad)">-</span> Load imbalance<br><span style="color:var(--bad)">-</span> More complex</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="diagram-caption">SQMS vs MQMS tradeoff summary</div></div>';
+      },
+      options: [
+        "SQMS is always better because simplicity trumps everything",
+        "MQMS is always better because scalability is the only thing that matters",
+        "SQMS is simple but has scalability and affinity problems; MQMS scales better with good affinity but faces load imbalance — neither is universally superior",
+        "Both have identical tradeoffs and produce the same schedules"
+      ],
+      answer: 2,
+      explain: "SQMS is straightforward (reuses single-CPU scheduler) but the shared lock doesn't scale and jobs bounce between CPUs. MQMS scales well and naturally provides affinity, but load imbalance requires complex migration/work-stealing solutions. Both have been successfully used in real systems."
+    }
+  ];
+
+  // ── Quiz engine (same as other quizzes) ──
+  var els = {
+    qText: document.getElementById('qText'),
+    diagramArea: document.getElementById('diagramArea'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  var state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    // Clone quiz data, preserving diagram functions
+    var q = ORIGINAL.map(function(item) {
+      return {
+        q: item.q,
+        options: item.options.slice(),
+        answer: item.answer,
+        explain: item.explain,
+        diagram: item.diagram
+      };
+    });
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        var opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        var newOptions = opts.map(function(o) { return o.text; });
+        var newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain,
+          diagram: item.diagram
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    var correct = 0;
+    var answered = 0;
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    var s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    var pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    var item = state.quiz[state.idx];
+    var correctIdx = item.answer;
+    var isCorrect = chosenIdx === correctIdx;
+    var correctText = item.options[correctIdx];
+
+    var tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    var html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    var s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    var pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    var missed = [];
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        var it = state.quiz[i];
+        var chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    var missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    var item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    // Render diagram
+    if (item.diagram) {
+      els.diagramArea.innerHTML = item.diagram();
+    } else {
+      els.diagramArea.innerHTML = '';
+    }
+
+    els.opts.innerHTML = '';
+    var chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      var btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      var alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

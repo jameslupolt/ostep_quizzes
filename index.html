@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Quizzes</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --max: 760px;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    header {
+      padding: 32px 18px 18px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 24px 18px 48px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 28px 0 12px 0;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--border);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-size: .85rem;
+    }
+    .section-title:first-of-type {
+      margin-top: 8px;
+    }
+    .quiz-list {
+      display: grid;
+      gap: 10px;
+    }
+    a.quiz-link {
+      display: flex;
+      gap: 14px;
+      align-items: baseline;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+      text-decoration: none;
+      color: var(--fg);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    a.quiz-link:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    }
+    a.quiz-link:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    .quiz-ch {
+      font-weight: 700;
+      font-size: .85rem;
+      flex-shrink: 0;
+      width: 52px;
+      text-align: center;
+      padding: 4px 0;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--focus) 12%, Canvas 88%);
+      color: color-mix(in srgb, var(--focus) 85%, CanvasText 15%);
+    }
+    .quiz-info {
+      flex: 1;
+    }
+    .quiz-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .quiz-desc {
+      font-size: .88rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .badge.visual {
+      background: color-mix(in srgb, #8b5cf6 18%, Canvas 82%);
+      color: color-mix(in srgb, #8b5cf6 85%, CanvasText 15%);
+    }
+    .badge.code {
+      background: color-mix(in srgb, #10b981 18%, Canvas 82%);
+      color: color-mix(in srgb, #10b981 85%, CanvasText 15%);
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .85rem;
+      border-top: 1px solid var(--border);
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Quizzes</h1>
+      <p class="subtitle">Practice quizzes for <em>Operating Systems: Three Easy Pieces</em> (v1.10). All quizzes run locally in your browser — no server needed.</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+
+      <div class="section-title">I &mdash; Virtualization: CPU</div>
+      <div class="quiz-list">
+        <a class="quiz-link" href="ostep_ch1-5_quiz.html">
+          <div class="quiz-ch">Ch 1-5</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Introduction &amp; Process Fundamentals</div>
+            <div class="quiz-desc">OS intro, virtualization overview, processes, process API, and the fork/exec/wait system calls.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter6_quiz.html">
+          <div class="quiz-ch">Ch 6</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Mechanism: Limited Direct Execution</div>
+            <div class="quiz-desc">Traps, trap handlers, user/kernel mode, system calls, timer interrupts, and context switching.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter7_quiz.html">
+          <div class="quiz-ch">Ch 7</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Scheduling: Introduction</div>
+            <div class="quiz-desc">FIFO, SJF, STCF, Round Robin, turnaround time, response time, and the tradeoffs between them.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter8_quiz.html">
+          <div class="quiz-ch">Ch 8</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Scheduling: The Multi-Level Feedback Queue</div>
+            <div class="quiz-desc">MLFQ rules, priority boost, gaming the scheduler, allotment-based accounting.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter9_quiz.html">
+          <div class="quiz-ch">Ch 9</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Scheduling: Proportional Share</div>
+            <div class="quiz-desc">Lottery scheduling, ticket mechanisms, stride scheduling, and the Linux CFS.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter10_quiz.html">
+          <div class="quiz-ch">Ch 10</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Multiprocessor Scheduling (Advanced)</div>
+            <div class="quiz-desc">Cache coherence, SQMS, MQMS, cache affinity, work stealing, Linux schedulers.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter10_visual_quiz.html">
+          <div class="quiz-ch">Ch 10</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Multiprocessor Scheduling <span class="badge visual">Visual</span></div>
+            <div class="quiz-desc">Same topics with CSS-rendered diagrams: scheduling grids, cache coherence flows, queue visualizations.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter11-12_quiz.html">
+          <div class="quiz-ch">Ch 11-12</div>
+          <div class="quiz-info">
+            <div class="quiz-title">CPU Virtualization Review &amp; Memory Virtualization Intro</div>
+            <div class="quiz-desc">Challenging cross-chapter synthesis, spot-the-false-statement, mechanism matching, and "why not what" reasoning.</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="section-title">I &mdash; Virtualization: Memory</div>
+      <div class="quiz-list">
+        <a class="quiz-link" href="chapter13_quiz.html">
+          <div class="quiz-ch">Ch 13</div>
+          <div class="quiz-info">
+            <div class="quiz-title">The Abstraction: Address Spaces <span class="badge visual">Visual</span></div>
+            <div class="quiz-desc">Address space layout diagrams, virtual-to-physical mapping, "where does this live?" code questions.</div>
+          </div>
+        </a>
+        <a class="quiz-link" href="chapter14_quiz.html">
+          <div class="quiz-ch">Ch 14</div>
+          <div class="quiz-info">
+            <div class="quiz-title">Interlude: Memory API <span class="badge code">Spot the Bug</span></div>
+            <div class="quiz-desc">Buggy C code identification, sizeof gotchas, malloc/free common errors, dangling pointers, and memory leaks.</div>
+          </div>
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      Based on <em>Operating Systems: Three Easy Pieces</em> by Remzi H. &amp; Andrea C. Arpaci-Dusseau (version 1.10). Available free at <a href="https://pages.cs.wisc.edu/~remzi/OSTEP/" style="color:inherit">ostep.org</a>.
+    </div>
+  </footer>
+</body>
+</html>

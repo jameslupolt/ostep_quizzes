@@ -1,0 +1,1308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 13 Quiz — The Abstraction: Address Spaces</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+
+    /* ── visual diagram area ── */
+    .diagram {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in srgb, Canvas 97%, CanvasText 3%);
+      overflow-x: auto;
+    }
+
+    /* address space boxes */
+    .as-container {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .as-box {
+      width: 180px;
+      border: 2px solid var(--fg);
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: var(--mono);
+      font-size: .82rem;
+    }
+    .as-segment {
+      padding: 10px 12px;
+      text-align: center;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+    }
+    .as-segment:last-child { border-bottom: none; }
+    .as-code { background: color-mix(in srgb, #3b82f6 20%, Canvas 80%); }
+    .as-heap { background: color-mix(in srgb, #22c55e 20%, Canvas 80%); }
+    .as-free {
+      background: repeating-linear-gradient(
+        45deg,
+        color-mix(in srgb, Canvas 95%, CanvasText 5%),
+        color-mix(in srgb, Canvas 95%, CanvasText 5%) 4px,
+        color-mix(in srgb, Canvas 85%, CanvasText 15%) 4px,
+        color-mix(in srgb, Canvas 85%, CanvasText 15%) 8px
+      );
+      color: var(--muted);
+      font-style: italic;
+      font-weight: 400;
+    }
+    .as-stack { background: color-mix(in srgb, #f97316 20%, Canvas 80%); }
+
+    /* memory layout boxes for era diagrams */
+    .mem-era {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .mem-era-title {
+      font-weight: 700;
+      font-size: .88rem;
+      text-align: center;
+    }
+    .phys-mem {
+      width: 160px;
+      border: 2px solid var(--fg);
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: var(--mono);
+      font-size: .78rem;
+    }
+    .phys-seg {
+      padding: 8px 10px;
+      text-align: center;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .phys-seg:last-child { border-bottom: none; }
+    .phys-os { background: color-mix(in srgb, #ef4444 18%, Canvas 82%); }
+    .phys-proc-a { background: color-mix(in srgb, #6366f1 18%, Canvas 82%); }
+    .phys-proc-b { background: color-mix(in srgb, #f59e0b 18%, Canvas 82%); }
+    .phys-proc-c { background: color-mix(in srgb, #10b981 18%, Canvas 82%); }
+    .phys-empty { background: color-mix(in srgb, Canvas 90%, CanvasText 10%); color: var(--muted); font-style: italic; }
+
+    /* mapping arrow boxes */
+    .mapping-container {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .mapping-arrow {
+      font-size: 2rem;
+      color: var(--focus);
+    }
+    .addr-label {
+      font-family: var(--mono);
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: right;
+      padding-right: 6px;
+    }
+
+    /* code snippet styling */
+    .code-block {
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: .85rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-comment { color: var(--muted); }
+    .code-keyword { color: color-mix(in srgb, #8b5cf6 80%, Canvas 20%); font-weight: 600; }
+    .code-type { color: color-mix(in srgb, #3b82f6 80%, Canvas 20%); }
+    .code-fn { color: color-mix(in srgb, #f59e0b 80%, Canvas 20%); }
+    .code-highlight { background: color-mix(in srgb, var(--focus) 15%, transparent 85%); border-radius: 3px; padding: 1px 3px; }
+
+    /* caption under diagrams */
+    .diagram-caption {
+      margin-top: 8px;
+      text-align: center;
+      font-size: .85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 13 Quiz &mdash; The Abstraction: Address Spaces</h1>
+      <p class="subtitle">Visual quiz covering address space layout, virtual memory concepts, and the evolution of memory management.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: &mdash;</span>
+          <span class="pill" id="pillScore">Score: &mdash;</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading&hellip;</div>
+        <div id="diagramArea"></div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">&larr; Previous</button>
+            <button class="action" id="nextBtn">Next &rarr;</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 13 (The Abstraction: Address Spaces) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file &mdash; open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  // ── Diagram renderers ──
+
+  function diagramAddressSpaceBasic() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:8px">Address Space</div>' +
+        '<div class="as-box">' +
+          '<div class="as-segment as-code" style="padding:14px 12px">Code<br><span style="font-size:.72rem;font-weight:400">(program text)</span></div>' +
+          '<div class="as-segment as-heap" style="padding:14px 12px">Heap<br><span style="font-size:.72rem;font-weight:400">(malloc\'d data)</span><br><span style="font-size:1.1rem">&darr;</span></div>' +
+          '<div class="as-segment as-free" style="padding:30px 12px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:14px 12px"><span style="font-size:1.1rem">&uarr;</span><br>Stack<br><span style="font-size:.72rem;font-weight:400">(local vars, return addrs)</span></div>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--muted);width:180px;margin-top:4px"><span>0x0000</span><span style="text-align:right">0xFFFF</span></div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;justify-content:center;gap:8px;font-size:.85rem;max-width:200px">' +
+        '<div><span style="display:inline-block;width:14px;height:14px;background:color-mix(in srgb, #3b82f6 20%, Canvas 80%);border:1px solid var(--border);border-radius:3px;vertical-align:middle"></span> Code &mdash; static, top of space</div>' +
+        '<div><span style="display:inline-block;width:14px;height:14px;background:color-mix(in srgb, #22c55e 20%, Canvas 80%);border:1px solid var(--border);border-radius:3px;vertical-align:middle"></span> Heap &mdash; grows downward (&darr;)</div>' +
+        '<div><span style="display:inline-block;width:14px;height:14px;background:repeating-linear-gradient(45deg,#ddd,#ddd 2px,#eee 2px,#eee 4px);border:1px solid var(--border);border-radius:3px;vertical-align:middle"></span> Free space</div>' +
+        '<div><span style="display:inline-block;width:14px;height:14px;background:color-mix(in srgb, #f97316 20%, Canvas 80%);border:1px solid var(--border);border-radius:3px;vertical-align:middle"></span> Stack &mdash; grows upward (&uarr;)</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">A typical virtual address space layout with code, heap, free space, and stack regions</div>' +
+    '</div>';
+  }
+
+  function diagramHeapGrowth() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.85rem">Before malloc()</div>' +
+        '<div class="as-box" style="width:150px">' +
+          '<div class="as-segment as-code" style="padding:10px 8px">Code</div>' +
+          '<div class="as-segment as-heap" style="padding:8px 8px">Heap<br><span style="font-size:.72rem;font-weight:400">1 KB used</span></div>' +
+          '<div class="as-segment as-free" style="padding:40px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:10px 8px">Stack</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:2rem;color:var(--focus);align-self:center">&rarr;</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.85rem">After malloc(4096)</div>' +
+        '<div class="as-box" style="width:150px">' +
+          '<div class="as-segment as-code" style="padding:10px 8px">Code</div>' +
+          '<div class="as-segment as-heap" style="padding:18px 8px;border-left:3px solid var(--good)">Heap<br><span style="font-size:.72rem;font-weight:400">5 KB used</span><br><span style="font-size:.9rem">&darr;</span></div>' +
+          '<div class="as-segment as-free" style="padding:30px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:10px 8px">Stack</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">The heap grows toward higher addresses (downward in the diagram) after a malloc() call</div>' +
+    '</div>';
+  }
+
+  function diagramStackGrowth() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.85rem">Before function call</div>' +
+        '<div class="as-box" style="width:150px">' +
+          '<div class="as-segment as-code" style="padding:10px 8px">Code</div>' +
+          '<div class="as-segment as-heap" style="padding:10px 8px">Heap</div>' +
+          '<div class="as-segment as-free" style="padding:40px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:8px 8px">Stack<br><span style="font-size:.72rem;font-weight:400">main() frame</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:2rem;color:var(--focus);align-self:center">&rarr;</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.85rem">After calling foo()</div>' +
+        '<div class="as-box" style="width:150px">' +
+          '<div class="as-segment as-code" style="padding:10px 8px">Code</div>' +
+          '<div class="as-segment as-heap" style="padding:10px 8px">Heap</div>' +
+          '<div class="as-segment as-free" style="padding:28px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:18px 8px;border-left:3px solid var(--bad)"><span style="font-size:.9rem">&uarr;</span><br>Stack<br><span style="font-size:.72rem;font-weight:400">main()<br>foo() frame</span></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">The stack grows toward lower addresses (upward in the diagram) when a new function is called</div>' +
+    '</div>';
+  }
+
+  function diagramEarlySystems() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div class="mem-era">' +
+        '<div class="mem-era-title">Early Systems</div>' +
+        '<div class="phys-mem">' +
+          '<div class="phys-seg phys-os" style="padding:10px 8px">OS<br><span style="font-size:.72rem">(as a library)</span></div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:50px 8px">Current<br>Running<br>Program</div>' +
+        '</div>' +
+        '<div style="font-size:.75rem;color:var(--muted);text-align:center">One program at a time</div>' +
+      '</div>' +
+      '<div style="font-size:1.5rem;color:var(--focus);align-self:center">&rarr;</div>' +
+      '<div class="mem-era">' +
+        '<div class="mem-era-title">Multiprogramming</div>' +
+        '<div class="phys-mem">' +
+          '<div class="phys-seg phys-os" style="padding:8px 8px">OS</div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:12px 8px">Process A</div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:12px 8px">Process B</div>' +
+          '<div class="phys-seg phys-proc-c" style="padding:12px 8px">Process C</div>' +
+          '<div class="phys-seg phys-empty" style="padding:6px 8px">(free)</div>' +
+        '</div>' +
+        '<div style="font-size:.75rem;color:var(--muted);text-align:center">Multiple in memory</div>' +
+      '</div>' +
+      '<div style="font-size:1.5rem;color:var(--focus);align-self:center">&rarr;</div>' +
+      '<div class="mem-era">' +
+        '<div class="mem-era-title">Time Sharing + VM</div>' +
+        '<div class="phys-mem">' +
+          '<div class="phys-seg phys-os" style="padding:8px 8px">OS</div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:12px 8px;border-left:3px solid var(--good)">Process A<br><span style="font-size:.68rem">protected</span></div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:12px 8px;border-left:3px solid var(--good)">Process B<br><span style="font-size:.68rem">protected</span></div>' +
+          '<div class="phys-seg phys-proc-c" style="padding:12px 8px;border-left:3px solid var(--good)">Process C<br><span style="font-size:.68rem">protected</span></div>' +
+        '</div>' +
+        '<div style="font-size:.75rem;color:var(--muted);text-align:center">Protected + interactive</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">The evolution of memory management: from single programs to protected, multiplexed address spaces</div>' +
+    '</div>';
+  }
+
+  function diagramMultiprogramming() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div class="mem-era">' +
+        '<div class="mem-era-title">Physical Memory Layout</div>' +
+        '<div class="phys-mem" style="width:200px">' +
+          '<div class="phys-seg phys-os" style="padding:10px 8px">Operating System<br><span style="font-size:.72rem">addr 0x0000 &ndash; 0x3FFF</span></div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:14px 8px">Process A<br><span style="font-size:.72rem">addr 0x4000 &ndash; 0x7FFF</span></div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:14px 8px">Process B<br><span style="font-size:.72rem">addr 0x8000 &ndash; 0xBFFF</span></div>' +
+          '<div class="phys-seg phys-empty" style="padding:14px 8px">(unused)<br><span style="font-size:.72rem">addr 0xC000 &ndash; 0xFFFF</span></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Multiple processes reside in physical memory simultaneously. No protection boundaries shown.</div>' +
+    '</div>';
+  }
+
+  function diagramVirtualToPhysical() {
+    return '<div class="diagram"><div class="mapping-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:8px">Process A\'s Virtual<br>Address Space</div>' +
+        '<div class="as-box" style="width:160px">' +
+          '<div class="as-segment as-code" style="padding:8px 8px"><span class="addr-label">0x0000</span> Code</div>' +
+          '<div class="as-segment as-heap" style="padding:8px 8px"><span class="addr-label">0x1000</span> Heap</div>' +
+          '<div class="as-segment as-free" style="padding:16px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:8px 8px"><span class="addr-label">0xF000</span> Stack</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:6px">' +
+        '<div class="mapping-arrow">&rarr;</div>' +
+        '<div style="font-size:.78rem;color:var(--muted);text-align:center;max-width:100px">Hardware<br>translates<br>addresses</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:8px">Physical Memory</div>' +
+        '<div class="phys-mem" style="width:160px">' +
+          '<div class="phys-seg phys-os" style="padding:8px 8px"><span class="addr-label">0x00000</span> OS</div>' +
+          '<div class="phys-seg phys-empty" style="padding:8px 8px"><span class="addr-label">0x10000</span> (other)</div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:8px 8px;border:2px dashed var(--focus)"><span class="addr-label">0x20000</span> A\'s Code</div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:8px 8px"><span class="addr-label">0x21000</span> A\'s Heap</div>' +
+          '<div class="phys-seg phys-empty" style="padding:8px 8px">(other)</div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:8px 8px"><span class="addr-label">0x2F000</span> A\'s Stack</div>' +
+          '<div class="phys-seg phys-empty" style="padding:6px 8px">(other)</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Virtual address 0x0000 in Process A maps to physical address 0x20000. The process never sees the physical address.</div>' +
+    '</div>';
+  }
+
+  function diagramVirtualToPhysical2() {
+    return '<div class="diagram"><div class="mapping-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:8px">Process B\'s View</div>' +
+        '<div class="as-box" style="width:150px">' +
+          '<div class="as-segment as-code" style="padding:8px 8px">0x0000: Code</div>' +
+          '<div class="as-segment as-heap" style="padding:8px 8px">0x2000: Heap<br><span style="font-size:.72rem;font-weight:400">x = *(0x2044)</span></div>' +
+          '<div class="as-segment as-free" style="padding:12px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:8px 8px">0xF000: Stack</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:6px">' +
+        '<div class="mapping-arrow">&rarr;</div>' +
+        '<div style="font-size:.78rem;text-align:center;max-width:110px"><strong>Base = 0x30000</strong><br><span style="color:var(--muted)">phys = virt + base</span></div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:8px">Physical Memory</div>' +
+        '<div class="phys-mem" style="width:150px">' +
+          '<div class="phys-seg phys-os" style="padding:6px 8px">OS</div>' +
+          '<div class="phys-seg phys-empty" style="padding:6px 8px">...</div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:6px 8px;border:2px dashed var(--focus)">0x30000: B Code</div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:6px 8px">0x32000: B Heap</div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:6px 8px;font-weight:700;color:var(--good)">0x32044: ?</div>' +
+          '<div class="phys-seg phys-empty" style="padding:6px 8px">...</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Process B is loaded at physical base address 0x30000. When B accesses virtual address 0x2044, what physical address is accessed?</div>' +
+    '</div>';
+  }
+
+  function diagramTwoProcessesVirtual() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.88rem">Process A\'s View</div>' +
+        '<div class="as-box" style="width:140px">' +
+          '<div class="as-segment as-code" style="padding:8px 8px">0x0000: Code</div>' +
+          '<div class="as-segment as-heap" style="padding:8px 8px">0x1000: Heap</div>' +
+          '<div class="as-segment as-free" style="padding:14px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:8px 8px">0xFFFF: Stack</div>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.88rem">Process B\'s View</div>' +
+        '<div class="as-box" style="width:140px">' +
+          '<div class="as-segment as-code" style="padding:8px 8px">0x0000: Code</div>' +
+          '<div class="as-segment as-heap" style="padding:8px 8px">0x1000: Heap</div>' +
+          '<div class="as-segment as-free" style="padding:14px 8px">(free)</div>' +
+          '<div class="as-segment as-stack" style="padding:8px 8px">0xFFFF: Stack</div>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.88rem">Physical Memory</div>' +
+        '<div class="phys-mem" style="width:140px">' +
+          '<div class="phys-seg phys-os" style="padding:6px 6px">OS</div>' +
+          '<div class="phys-seg phys-proc-a" style="padding:12px 6px">A @ 0x10000</div>' +
+          '<div class="phys-seg phys-empty" style="padding:6px 6px">(gap)</div>' +
+          '<div class="phys-seg phys-proc-b" style="padding:12px 6px">B @ 0x50000</div>' +
+          '<div class="phys-seg phys-empty" style="padding:6px 6px">(free)</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Both processes see address 0x0000 as their starting point, but they occupy completely different physical locations</div>' +
+    '</div>';
+  }
+
+  function diagramCodeSnippet1() {
+    return '<div class="diagram">' +
+      '<div class="code-block">' +
+        '<span class="code-type">int</span> global_count = <span style="color:var(--good)">42</span>;           <span class="code-comment">// &larr; A</span>\n' +
+        '\n' +
+        '<span class="code-type">void</span> <span class="code-fn">process_data</span>() {\n' +
+        '    <span class="code-type">int</span> temp = <span style="color:var(--good)">0</span>;              <span class="code-comment">// &larr; B</span>\n' +
+        '    <span class="code-type">char</span> *buf = <span class="code-fn">malloc</span>(<span style="color:var(--good)">256</span>);   <span class="code-comment">// &larr; C (the pointer)</span>\n' +
+        '                                <span class="code-comment">// &larr; D (the 256 bytes)</span>\n' +
+        '}' +
+      '</div>' +
+      '<div class="diagram-caption">Consider where each labeled item (A, B, C, D) resides in the address space</div>' +
+    '</div>';
+  }
+
+  function diagramCodeSnippet2() {
+    return '<div class="diagram">' +
+      '<div class="code-block">' +
+        '<span class="code-type">const char</span> *msg = <span style="color:var(--good)">"hello"</span>;     <span class="code-comment">// &larr; A (the string literal)</span>\n' +
+        '\n' +
+        '<span class="code-type">int</span> <span class="code-fn">main</span>() {\n' +
+        '    <span class="code-type">int</span> arr[<span style="color:var(--good)">100</span>];              <span class="code-comment">// &larr; B</span>\n' +
+        '    <span class="code-type">int</span> *p = <span class="code-fn">malloc</span>(<span style="color:var(--good)">100</span> * <span class="code-keyword">sizeof</span>(<span class="code-type">int</span>)); <span class="code-comment">// &larr; C (the allocated array)</span>\n' +
+        '    <span class="code-fn">free</span>(p);                   <span class="code-comment">// &larr; D (after this line)</span>\n' +
+        '    <span class="code-keyword">return</span> <span style="color:var(--good)">0</span>;\n' +
+        '}' +
+      '</div>' +
+      '<div class="diagram-caption">Identify where each labeled item lives, and what happens to the heap after free()</div>' +
+    '</div>';
+  }
+
+  function diagramCodeSnippet3() {
+    return '<div class="diagram">' +
+      '<div class="code-block">' +
+        '<span class="code-type">void</span> <span class="code-fn">recursive</span>(<span class="code-type">int</span> n) {\n' +
+        '    <span class="code-type">int</span> local = n;                  <span class="code-comment">// &larr; new stack frame each call</span>\n' +
+        '    <span class="code-type">int</span> *heap_val = <span class="code-fn">malloc</span>(<span class="code-keyword">sizeof</span>(<span class="code-type">int</span>)); <span class="code-comment">// &larr; new heap alloc each call</span>\n' +
+        '    <span class="code-keyword">if</span> (n > <span style="color:var(--good)">0</span>) <span class="code-fn">recursive</span>(n - <span style="color:var(--good)">1</span>);\n' +
+        '    <span class="code-fn">free</span>(heap_val);\n' +
+        '}\n' +
+        '<span class="code-comment">// Called as: recursive(3)</span>' +
+      '</div>' +
+      '<div class="diagram-caption">This function is called with n=3. Think about how both the stack and heap change during execution.</div>' +
+    '</div>';
+  }
+
+  function diagramCodeSnippetVa() {
+    return '<div class="diagram">' +
+      '<div class="code-block">' +
+        '<span class="code-comment">// Similar to OSTEP\'s va.c program</span>\n' +
+        '<span class="code-type">int</span> global = <span style="color:var(--good)">10</span>;\n' +
+        '<span class="code-type">int</span> <span class="code-fn">main</span>() {\n' +
+        '    <span class="code-type">int</span> local = <span style="color:var(--good)">20</span>;\n' +
+        '    <span class="code-type">int</span> *heap = <span class="code-fn">malloc</span>(<span class="code-keyword">sizeof</span>(<span class="code-type">int</span>));\n' +
+        '    <span class="code-fn">printf</span>(<span style="color:var(--good)">"code:  %p\\n"</span>, (<span class="code-type">void</span>*)<span class="code-fn">main</span>);\n' +
+        '    <span class="code-fn">printf</span>(<span style="color:var(--good)">"heap:  %p\\n"</span>, (<span class="code-type">void</span>*)heap);\n' +
+        '    <span class="code-fn">printf</span>(<span style="color:var(--good)">"stack: %p\\n"</span>, (<span class="code-type">void</span>*)&amp;local);\n' +
+        '}' +
+      '</div>' +
+      '<div class="diagram-caption">This program prints three addresses. Are these virtual or physical addresses?</div>' +
+    '</div>';
+  }
+
+  function diagramGoalsTriangle() {
+    return '<div class="diagram">' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">' +
+        '<div style="flex:1;min-width:160px;border:2px solid color-mix(in srgb, #3b82f6 60%, var(--fg) 40%);border-radius:10px;padding:14px;text-align:center">' +
+          '<div style="font-weight:700;font-family:var(--mono);color:color-mix(in srgb, #3b82f6 80%, Canvas 20%)">Transparency</div>' +
+          '<div style="font-size:.82rem;color:var(--muted);margin-top:6px">Program unaware of VM.<br>Behaves as if it has<br>its own private memory.</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:160px;border:2px solid color-mix(in srgb, #22c55e 60%, var(--fg) 40%);border-radius:10px;padding:14px;text-align:center">' +
+          '<div style="font-weight:700;font-family:var(--mono);color:color-mix(in srgb, #22c55e 80%, Canvas 20%)">Efficiency</div>' +
+          '<div style="font-size:.82rem;color:var(--muted);margin-top:6px">Don\'t slow programs down.<br>Minimize memory used<br>for VM structures. TLBs help.</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:160px;border:2px solid color-mix(in srgb, #ef4444 60%, var(--fg) 40%);border-radius:10px;padding:14px;text-align:center">' +
+          '<div style="font-weight:700;font-family:var(--mono);color:color-mix(in srgb, #ef4444 80%, Canvas 20%)">Protection</div>' +
+          '<div style="font-size:.82rem;color:var(--muted);margin-top:6px">Isolate processes from<br>each other and from<br>the OS itself.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="diagram-caption">The three goals of virtual memory, all of which must be achieved simultaneously</div>' +
+    '</div>';
+  }
+
+  function diagramProtectionViolation() {
+    return '<div class="diagram"><div class="as-container">' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.85rem">Process A</div>' +
+        '<div class="phys-mem" style="width:140px">' +
+          '<div class="phys-seg phys-proc-a" style="padding:12px 8px">A\'s Memory<br><span style="font-size:.72rem">password = "s3cret"</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">' +
+        '<div style="font-size:2rem;color:var(--bad)">&#10060;</div>' +
+        '<div style="font-size:.78rem;color:var(--bad);font-weight:700;text-align:center">BLOCKED by<br>VM protection</div>' +
+      '</div>' +
+      '<div>' +
+        '<div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:.85rem">Process B</div>' +
+        '<div class="phys-mem" style="width:140px">' +
+          '<div class="phys-seg phys-proc-b" style="padding:12px 8px">B\'s Memory<br><span style="font-size:.72rem">trying to read<br>A\'s password...</span></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="diagram-caption">Without protection, a malicious process could read another process\'s private data</div>' +
+    '</div>';
+  }
+
+  // ── Quiz data ──
+  var ORIGINAL = [
+    // === ADDRESS SPACE LAYOUT (Q1-Q4) ===
+    {
+      q: "Examine this address space layout. In which direction does the heap grow?",
+      diagram: diagramAddressSpaceBasic,
+      options: [
+        "Toward lower addresses (toward the code segment)",
+        "Toward higher addresses (toward the stack, into free space)",
+        "It doesn't grow — heap size is fixed at program start",
+        "In both directions simultaneously"
+      ],
+      answer: 1,
+      explain: "The heap grows toward higher addresses (positive direction), expanding into the free space between the heap and stack. In the diagram, this is shown as growing downward with the arrow, toward the stack."
+    },
+    {
+      q: "Looking at this diagram of heap growth after malloc(), which statement is true about the relationship between heap and stack?",
+      diagram: diagramHeapGrowth,
+      options: [
+        "The heap and stack grow toward each other — if they meet, the process runs out of address space",
+        "The heap and stack grow in the same direction and can never collide",
+        "The stack shrinks automatically to make room for heap growth",
+        "The free space between them is pre-allocated and cannot be used"
+      ],
+      answer: 0,
+      explain: "The heap grows toward higher addresses and the stack grows toward lower addresses, meaning they grow toward each other through the free space. If a program allocates too much heap or recurses too deeply, they could theoretically collide, exhausting the address space."
+    },
+    {
+      q: "In this stack growth diagram, a new function foo() is called. What exactly gets pushed onto the stack, and in which direction does it grow?",
+      diagram: diagramStackGrowth,
+      options: [
+        "Only the return address; the stack grows toward higher addresses",
+        "A new stack frame (local variables, return address, saved registers) is pushed; the stack grows toward lower addresses (toward the heap)",
+        "Only local variables; the stack grows toward the code segment",
+        "The function's compiled code is copied onto the stack"
+      ],
+      answer: 1,
+      explain: "When foo() is called, a new stack frame containing local variables, the return address, and saved registers is pushed onto the stack. The stack grows toward lower addresses (toward the heap), shown as growing upward in the diagram."
+    },
+    {
+      q: "A variable is allocated with malloc() inside a function. Where do the pointer variable and the allocated data reside?",
+      diagram: diagramAddressSpaceBasic,
+      options: [
+        "Both the pointer and the allocated data are on the heap",
+        "The pointer is on the stack (it's a local variable); the allocated data is on the heap",
+        "Both the pointer and the allocated data are on the stack",
+        "The pointer is in the code segment; the allocated data is on the heap"
+      ],
+      answer: 1,
+      explain: "The pointer variable itself (e.g., int *p) is a local variable and lives on the stack. The memory that malloc() returns — the actual allocated bytes — lives on the heap. This is a critical distinction that students often miss."
+    },
+
+    // === MEMORY LAYOUT EVOLUTION (Q5-Q6) ===
+    {
+      q: "Study this evolution of memory management. What key problem did multiprogramming introduce that early single-program systems did not have?",
+      diagram: diagramEarlySystems,
+      options: [
+        "Programs ran slower because they had less memory available",
+        "The OS needed protection mechanisms — with multiple processes in memory, one process could read or overwrite another's data",
+        "Programs could no longer access the disk",
+        "The CPU could only execute one instruction per second"
+      ],
+      answer: 1,
+      explain: "When only one program ran at a time, protection wasn't a concern — there was nobody to protect against. Multiprogramming put multiple processes in memory simultaneously, creating the need for protection so that Process A couldn't accidentally (or maliciously) read or corrupt Process B's memory."
+    },
+    {
+      q: "This diagram shows multiple processes in physical memory without virtual memory. What was the early (inefficient) approach to time-sharing before address spaces existed?",
+      diagram: diagramMultiprogramming,
+      options: [
+        "Give each process its own physical CPU",
+        "Save the entire memory contents of one process to disk, then load the next process's memory from disk — extremely slow",
+        "Run all processes in a single shared address space with no protection",
+        "Only allow one process to use memory at a time, leaving others in registers"
+      ],
+      answer: 1,
+      explain: "Before the address space abstraction, early time-sharing systems would save all of a process's memory to disk and load another process's memory from disk on each context switch. This was correct but painfully slow, motivating the development of leaving processes in memory and using protection."
+    },
+
+    // === WHERE DOES THIS LIVE? (Q7-Q10) ===
+    {
+      q: "For each labeled item in this code, where does it reside? Focus on item D — the 256 bytes that malloc returns.",
+      diagram: diagramCodeSnippet1,
+      options: [
+        "D (the 256 bytes) is on the stack, since it's inside a function",
+        "D (the 256 bytes) is on the heap — malloc always allocates from the heap, regardless of where the call is made",
+        "D (the 256 bytes) is in the code segment alongside the compiled instructions",
+        "D (the 256 bytes) is in a special malloc segment separate from both heap and stack"
+      ],
+      answer: 1,
+      explain: "malloc() always allocates memory from the heap. It doesn't matter that the malloc call is inside a function — the allocated bytes (D) live on the heap. The pointer 'buf' (C) that holds the address of those bytes is a local variable on the stack. The global_count (A) is in the data/code segment, and temp (B) is on the stack."
+    },
+    {
+      q: "In this code, where does the string literal \"hello\" (item A) reside in the address space?",
+      diagram: diagramCodeSnippet2,
+      options: [
+        "On the heap, because it's dynamically created at runtime",
+        "On the stack, because it's used inside main()",
+        "In the code segment (or a read-only data section near it) — string literals are compiled into the binary and are static",
+        "In the free space between heap and stack"
+      ],
+      answer: 2,
+      explain: "String literals like \"hello\" are compiled into the binary and stored in a read-only section of the code segment (or a closely related data segment). They exist for the entire lifetime of the program and cannot be modified. The pointer 'msg' pointing to it may be global (data segment) or local (stack), but the string itself is in the code/data area."
+    },
+    {
+      q: "Consider this recursive function called with n=3. At the deepest point of recursion (when n=0), how many stack frames and heap allocations exist simultaneously?",
+      diagram: diagramCodeSnippet3,
+      options: [
+        "1 stack frame and 1 heap allocation",
+        "4 stack frames (for n=3,2,1,0) and 4 heap allocations (one malloc per call, none freed yet)",
+        "4 stack frames but 0 heap allocations (they are freed immediately)",
+        "3 stack frames and 3 heap allocations"
+      ],
+      answer: 1,
+      explain: "The function is called 4 times (n=3, 2, 1, 0). At the deepest point (n=0), all 4 stack frames are active simultaneously. Each call does a malloc before the recursive call, and free happens only after the recursive call returns. So at the deepest point, there are 4 stack frames and 4 live heap allocations."
+    },
+    {
+      q: "After free(p) executes in this code (item D), what happens to the memory that was allocated?",
+      diagram: diagramCodeSnippet2,
+      options: [
+        "The memory is returned to the OS immediately and the physical RAM is released",
+        "The heap region shrinks back to its original size automatically",
+        "The memory is returned to the heap's free list — it can be reused by future malloc() calls, but the heap region doesn't necessarily shrink",
+        "The memory is zeroed out and moved to the stack"
+      ],
+      answer: 2,
+      explain: "free() returns the memory to the heap allocator's internal free list, making it available for future malloc() calls. It does not necessarily return memory to the OS or shrink the heap — the freed block remains in the heap region but is marked as available for reuse."
+    },
+
+    // === VIRTUAL vs PHYSICAL ADDRESS (Q11-Q13) ===
+    {
+      q: "In this diagram, Process B's virtual address space starts at 0x0000 but is loaded at physical base address 0x30000. If Process B accesses virtual address 0x2044 (in its heap), what physical address does the hardware actually access?",
+      diagram: diagramVirtualToPhysical2,
+      options: [
+        "0x2044 — virtual and physical addresses are the same",
+        "0x30000 — it always accesses the base address",
+        "0x32044 — the hardware adds the base register (0x30000) to the virtual address (0x2044)",
+        "0x28000 — the hardware subtracts the virtual address from the base"
+      ],
+      answer: 2,
+      explain: "With base-and-bounds relocation, the hardware computes: physical = virtual + base. So 0x2044 + 0x30000 = 0x32044. The program generates virtual address 0x2044, completely unaware that the real access goes to physical address 0x32044."
+    },
+    {
+      q: "Both Process A and Process B see their code starting at virtual address 0x0000. How is this possible if they're in the same physical memory?",
+      diagram: diagramTwoProcessesVirtual,
+      options: [
+        "It's not possible — one of them must be lying about its address",
+        "They share the same physical memory at the same location",
+        "Each process has its own virtual-to-physical mapping. A's 0x0000 maps to physical 0x10000 while B's 0x0000 maps to physical 0x50000 — different physical locations, same virtual address",
+        "The OS rapidly copies memory back and forth so only one process uses address 0x0000 at a time"
+      ],
+      answer: 2,
+      explain: "This is the core illusion of virtual memory. Each process has its own mapping from virtual to physical addresses. Both processes believe they start at 0x0000, but the hardware translates A's 0x0000 to physical 0x10000 and B's 0x0000 to physical 0x50000. They never interfere with each other."
+    },
+    {
+      q: "This program (similar to OSTEP's va.c) prints the addresses of code, heap, and stack variables using printf. What kind of addresses does it print?",
+      diagram: diagramCodeSnippetVa,
+      options: [
+        "Physical addresses — printf shows where data actually is in RAM",
+        "Virtual addresses — every address a user program can see or generate is virtual. Only the OS and hardware know the physical truth.",
+        "A mix of physical (for code) and virtual (for heap and stack)",
+        "Logical addresses that are neither virtual nor physical"
+      ],
+      answer: 1,
+      explain: "Every address that a running program generates or sees is a virtual address. The program has no way to discover its own physical addresses — the OS and hardware handle translation transparently. This is a key insight from the va.c example in the chapter."
+    },
+
+    // === GOAL IDENTIFICATION (Q14-Q16) ===
+    {
+      q: "A program is compiled assuming its memory starts at address 0. It runs correctly even though the OS loads it at physical address 0x40000. Which VM goal is most directly responsible for this working?",
+      diagram: diagramGoalsTriangle,
+      options: [
+        "Protection — the program is shielded from other processes",
+        "Efficiency — the hardware makes the translation fast",
+        "Transparency — the program is completely unaware of the virtual-to-physical mapping and behaves as if it has its own private memory starting at 0",
+        "None of these — this is just how compilers work"
+      ],
+      answer: 2,
+      explain: "Transparency means the program is oblivious to the virtualization. It behaves identically whether loaded at physical address 0x0 or 0x40000 because it only sees virtual addresses. While efficiency and protection are also important, the specific ability to be 'unaware' of VM is the transparency goal."
+    },
+    {
+      q: "The OS uses hardware TLBs (Translation Lookaside Buffers) to cache recent virtual-to-physical address translations, avoiding a slow lookup on every memory access. Which VM goal does this serve?",
+      diagram: diagramGoalsTriangle,
+      options: [
+        "Transparency — TLBs make the program unaware of translation",
+        "Efficiency — without TLBs, every memory access would require an additional memory lookup for the page table, making programs unacceptably slow",
+        "Protection — TLBs prevent processes from accessing each other's memory",
+        "Fairness — TLBs ensure each process gets equal CPU time"
+      ],
+      answer: 1,
+      explain: "TLBs are a hardware optimization that directly serves efficiency. Address translation requires consulting a page table stored in memory, which would double the cost of every memory access. TLBs cache recent translations in fast hardware, keeping the overhead minimal. The chapter specifically mentions TLBs as key to achieving the efficiency goal."
+    },
+    {
+      q: "Process B attempts to read Process A's memory containing a password. The hardware detects the access is outside B's valid address range and triggers a trap. Which VM goal prevented the breach?",
+      diagram: diagramProtectionViolation,
+      options: [
+        "Transparency — Process B can't see Process A's addresses",
+        "Efficiency — the check was fast enough to catch the access",
+        "Protection (isolation) — the hardware enforces that each process can only access its own memory, preventing one process from reading or modifying another's data",
+        "Multiprogramming — multiple processes can run simultaneously"
+      ],
+      answer: 2,
+      explain: "Protection (also called isolation) ensures that processes cannot access each other's memory or the OS's memory. The hardware enforces bounds or page-level permissions, trapping any access outside a process's legitimate address space. This is the VM goal most directly at work here."
+    },
+
+    // === SPOT THE MISCONCEPTION (Q17-Q18) ===
+    {
+      q: "Which of the following statements about virtual memory is INCORRECT?",
+      diagram: diagramVirtualToPhysical,
+      options: [
+        "Every address generated by a user-level program is a virtual address",
+        "The OS translates virtual addresses to physical addresses entirely in software on every memory access, with no hardware support needed",
+        "Two different processes can have the same virtual address map to different physical addresses",
+        "A program cannot determine its own physical memory address"
+      ],
+      answer: 1,
+      explain: "This is a common misconception. Address translation is performed by the hardware (the MMU) on every memory access, not by the OS in software. If the OS had to intercept and translate every single memory access in software, programs would be impossibly slow. The OS sets up the translation tables, but the hardware does the actual translation at full speed."
+    },
+    {
+      q: "Which of the following statements about address spaces is INCORRECT?",
+      diagram: diagramAddressSpaceBasic,
+      options: [
+        "The stack grows toward lower addresses and the heap grows toward higher addresses",
+        "The code segment can grow dynamically as the program runs, expanding when new functions are called",
+        "Local variables and function arguments are stored on the stack",
+        "The free space between the heap and stack is not wasted — it's available for either region to grow into"
+      ],
+      answer: 1,
+      explain: "The code segment is static — it is determined at compile time and does not change while the program runs. Calling a function does not add code to the code segment; the function's compiled instructions are already there. Only the heap (via malloc) and stack (via function calls) grow dynamically."
+    }
+  ];
+
+  // ── Quiz engine (same as other quizzes) ──
+  var els = {
+    qText: document.getElementById('qText'),
+    diagramArea: document.getElementById('diagramArea'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  var state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    var q = ORIGINAL.map(function(item) {
+      return {
+        q: item.q,
+        options: item.options.slice(),
+        answer: item.answer,
+        explain: item.explain,
+        diagram: item.diagram
+      };
+    });
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        var opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        var newOptions = opts.map(function(o) { return o.text; });
+        var newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain,
+          diagram: item.diagram
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    var correct = 0;
+    var answered = 0;
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    var s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    var pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    var item = state.quiz[state.idx];
+    var correctIdx = item.answer;
+    var isCorrect = chosenIdx === correctIdx;
+    var correctText = item.options[correctIdx];
+
+    var tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    var html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    var s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    var pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    var missed = [];
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        var it = state.quiz[i];
+        var chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    var missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    var item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    // Render diagram
+    if (item.diagram) {
+      els.diagramArea.innerHTML = item.diagram();
+    } else {
+      els.diagramArea.innerHTML = '';
+    }
+
+    els.opts.innerHTML = '';
+    var chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      var btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      var alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 14 Quiz — Memory API</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --kw: #7c3aed;
+      --fn: #0369a1;
+      --str: #16a34a;
+      --bug-bg: color-mix(in srgb, var(--bad) 8%, transparent 92%);
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+
+    /* ── visual diagram area ── */
+    .diagram {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in srgb, Canvas 97%, CanvasText 3%);
+      overflow-x: auto;
+    }
+
+    /* caption under diagrams */
+    .diagram-caption {
+      margin-top: 8px;
+      text-align: center;
+      font-size: .85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 14 Quiz &mdash; Memory API</h1>
+      <p class="subtitle">Spot the bug! Interactive quiz on malloc, free, and the common memory errors that haunt C programmers.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: &mdash;</span>
+          <span class="pill" id="pillScore">Score: &mdash;</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading&hellip;</div>
+        <div id="diagramArea"></div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">&larr; Previous</button>
+            <button class="action" id="nextBtn">Next &rarr;</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 14 (Interlude: Memory API) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file &mdash; open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  // ── Code snippet helpers ──
+  // Syntax-highlighted C code rendering
+
+  var KW = 'color:var(--kw);font-weight:700';   // keywords
+  var FN = 'color:var(--fn);font-weight:600';    // functions
+  var CM = 'color:var(--muted)';                 // comments
+  var ST = 'color:var(--str)';                   // strings
+  var BG = 'background:var(--bug-bg);display:inline-block;width:100%;padding:1px 4px;border-radius:3px'; // bug highlight
+
+  function s(style, text) {
+    return '<span style="' + style + '">' + text + '</span>';
+  }
+
+  function codeLine(text) { return text + '\n'; }
+  function bugLine(text) { return '<span style="' + BG + '">' + text + '</span>\n'; }
+
+  function codeBlock(lines) {
+    return '<div class="diagram"><div style="font-family:var(--mono);font-size:.85rem;line-height:1.6;white-space:pre">' +
+      lines + '</div></div>';
+  }
+
+  // ── Diagram renderers ──
+
+  // Q1: Forgetting to allocate - strcpy into unallocated pointer
+  function diagramQ1() {
+    return codeBlock(
+      s(KW, 'char') + ' *src = ' + s(ST, '"hello"') + ';\n' +
+      s(KW, 'char') + ' *dst;\n' +
+      bugLine(s(FN, 'strcpy') + '(dst, src);') +
+      s(FN, 'printf') + '(' + s(ST, '"%s\\n"') + ', dst);\n'
+    );
+  }
+
+  // Q2: Off-by-one string allocation (missing +1 for null terminator)
+  function diagramQ2() {
+    return codeBlock(
+      s(KW, 'char') + ' *src = ' + s(ST, '"hello"') + ';\n' +
+      bugLine(s(KW, 'char') + ' *dst = ' + s(FN, 'malloc') + '(' + s(FN, 'strlen') + '(src));') +
+      s(FN, 'strcpy') + '(dst, src);\n' +
+      s(FN, 'printf') + '(' + s(ST, '"%s\\n"') + ', dst);\n' +
+      s(FN, 'free') + '(dst);\n'
+    );
+  }
+
+  // Q3: sizeof on pointer vs array
+  function diagramQ3() {
+    return codeBlock(
+      s(KW, 'int') + ' *x = ' + s(FN, 'malloc') + '(10 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+      s(FN, 'printf') + '(' + s(ST, '"%lu\\n"') + ', ' + s(KW, 'sizeof') + '(x));\n' +
+      s(FN, 'free') + '(x);\n'
+    );
+  }
+
+  // Q4: sizeof on static array
+  function diagramQ4() {
+    return codeBlock(
+      s(KW, 'int') + ' arr[10];\n' +
+      s(KW, 'int') + ' *ptr = ' + s(FN, 'malloc') + '(10 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+      s(FN, 'printf') + '(' + s(ST, '"A: %lu\\n"') + ', ' + s(KW, 'sizeof') + '(arr));\n' +
+      s(FN, 'printf') + '(' + s(ST, '"B: %lu\\n"') + ', ' + s(KW, 'sizeof') + '(ptr));\n' +
+      s(FN, 'free') + '(ptr);\n'
+    );
+  }
+
+  // Q5: Double free
+  function diagramQ5() {
+    return codeBlock(
+      s(KW, 'int') + ' *p = ' + s(FN, 'malloc') + '(10 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+      s(CM, '// ... fill array with data ...') + '\n' +
+      s(KW, 'int') + ' *q = p;\n' +
+      s(FN, 'free') + '(p);\n' +
+      s(CM, '// ... more code ...') + '\n' +
+      bugLine(s(FN, 'free') + '(q);  ' + s(CM, '// cleanup'))
+    );
+  }
+
+  // Q6: Use after free (dangling pointer)
+  function diagramQ6() {
+    return codeBlock(
+      s(KW, 'int') + ' *data = ' + s(FN, 'malloc') + '(5 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+      'data[0] = 42;\n' +
+      s(FN, 'free') + '(data);\n' +
+      s(CM, '// ... 50 lines of other code ...') + '\n' +
+      bugLine(s(FN, 'printf') + '(' + s(ST, '"value: %d\\n"') + ', data[0]);')
+    );
+  }
+
+  // Q7: Memory leak in a loop
+  function diagramQ7() {
+    return codeBlock(
+      s(KW, 'void') + ' process_items(' + s(KW, 'int') + ' n) {\n' +
+      '    ' + s(KW, 'for') + ' (' + s(KW, 'int') + ' i = 0; i &lt; n; i++) {\n' +
+      bugLine('        ' + s(KW, 'char') + ' *buf = ' + s(FN, 'malloc') + '(256);') +
+      '        ' + s(FN, 'sprintf') + '(buf, ' + s(ST, '"item %d"') + ', i);\n' +
+      '        ' + s(FN, 'printf') + '(' + s(ST, '"%s\\n"') + ', buf);\n' +
+      '    }\n' +
+      '}\n'
+    );
+  }
+
+  // Q8: Freeing a stack variable
+  function diagramQ8() {
+    return codeBlock(
+      s(KW, 'void') + ' bad_function() {\n' +
+      '    ' + s(KW, 'int') + ' x = 42;\n' +
+      bugLine('    ' + s(FN, 'free') + '(&amp;x);') +
+      '}\n'
+    );
+  }
+
+  // Q9: sizeof with struct pointer
+  function diagramQ9() {
+    return codeBlock(
+      s(KW, 'typedef struct') + ' {\n' +
+      '    ' + s(KW, 'int') + ' id;\n' +
+      '    ' + s(KW, 'char') + ' name[64];\n' +
+      '    ' + s(KW, 'double') + ' score;\n' +
+      '} Student;\n' +
+      '\n' +
+      'Student *s = ' + s(FN, 'malloc') + '(' + s(KW, 'sizeof') + '(Student));\n' +
+      s(FN, 'printf') + '(' + s(ST, '"%lu %lu\\n"') + ', ' + s(KW, 'sizeof') + '(s), ' + s(KW, 'sizeof') + '(*s));\n'
+    );
+  }
+
+  // Q10: Uninitialized read
+  function diagramQ10() {
+    return codeBlock(
+      s(KW, 'int') + ' *arr = ' + s(FN, 'malloc') + '(5 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+      s(KW, 'int') + ' sum = 0;\n' +
+      bugLine(s(KW, 'for') + ' (' + s(KW, 'int') + ' i = 0; i &lt; 5; i++)') +
+      bugLine('    sum += arr[i];') +
+      s(FN, 'printf') + '(' + s(ST, '"%d\\n"') + ', sum);\n' +
+      s(FN, 'free') + '(arr);\n'
+    );
+  }
+
+  // Q11: Fix for off-by-one string (which fix is correct)
+  function diagramQ11() {
+    return codeBlock(
+      s(CM, '// Original buggy code:') + '\n' +
+      s(KW, 'char') + ' *src = ' + s(ST, '"world"') + ';\n' +
+      s(KW, 'char') + ' *dst = ' + s(FN, 'malloc') + '(' + s(FN, 'strlen') + '(src));\n' +
+      s(FN, 'strcpy') + '(dst, src);\n'
+    );
+  }
+
+  // Q12: Fix for dangling pointer (which fix is correct)
+  function diagramQ12() {
+    return codeBlock(
+      s(CM, '// Original buggy code:') + '\n' +
+      s(KW, 'char') + ' *get_greeting() {\n' +
+      '    ' + s(KW, 'char') + ' *msg = ' + s(FN, 'malloc') + '(32);\n' +
+      '    ' + s(FN, 'strcpy') + '(msg, ' + s(ST, '"Hello!"') + ');\n' +
+      '    ' + s(FN, 'free') + '(msg);\n' +
+      '    ' + s(KW, 'return') + ' msg;\n' +
+      '}\n'
+    );
+  }
+
+  // Q13: Fix for memory leak (which fix is correct)
+  function diagramQ13() {
+    return codeBlock(
+      s(CM, '// Original buggy code:') + '\n' +
+      s(KW, 'char') + ' *read_line(' + s(KW, 'FILE') + ' *f) {\n' +
+      '    ' + s(KW, 'char') + ' *buf = ' + s(FN, 'malloc') + '(1024);\n' +
+      '    ' + s(FN, 'fgets') + '(buf, 1024, f);\n' +
+      '    ' + s(KW, 'char') + ' *result = ' + s(FN, 'malloc') + '(' + s(FN, 'strlen') + '(buf) + 1);\n' +
+      '    ' + s(FN, 'strcpy') + '(result, buf);\n' +
+      '    ' + s(KW, 'return') + ' result;\n' +
+      '}\n'
+    );
+  }
+
+  // Q14: Forgetting to check malloc NULL
+  function diagramQ14() {
+    return codeBlock(
+      s(KW, 'void') + ' allocate_matrix(' + s(KW, 'int') + ' rows, ' + s(KW, 'int') + ' cols) {\n' +
+      bugLine('    ' + s(KW, 'int') + ' **mat = ' + s(FN, 'malloc') + '(rows * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + ' *));') +
+      '    ' + s(KW, 'for') + ' (' + s(KW, 'int') + ' i = 0; i &lt; rows; i++)\n' +
+      bugLine('        mat[i] = ' + s(FN, 'malloc') + '(cols * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));') +
+      '    mat[0][0] = 1;\n' +
+      '}\n'
+    );
+  }
+
+  // Q15: Returning pointer to stack variable
+  function diagramQ15() {
+    return codeBlock(
+      s(KW, 'int') + ' *create_value() {\n' +
+      '    ' + s(KW, 'int') + ' val = 42;\n' +
+      bugLine('    ' + s(KW, 'return') + ' &amp;val;') +
+      '}\n' +
+      '\n' +
+      s(KW, 'int') + ' main() {\n' +
+      '    ' + s(KW, 'int') + ' *p = create_value();\n' +
+      '    ' + s(FN, 'printf') + '(' + s(ST, '"%d\\n"') + ', *p);\n' +
+      '}\n'
+    );
+  }
+
+  // Q16: Wrong sizeof in malloc
+  function diagramQ16() {
+    return codeBlock(
+      s(KW, 'typedef struct') + ' {\n' +
+      '    ' + s(KW, 'int') + ' x, y;\n' +
+      '    ' + s(KW, 'char') + ' label[32];\n' +
+      '} Point;\n' +
+      '\n' +
+      'Point *points = ' + s(FN, 'malloc') + '(10 * ' + s(KW, 'sizeof') + '(Point *));\n' +
+      s(CM, '// ... use points[0].x, points[0].label, etc.') + '\n'
+    );
+  }
+
+  // ── Quiz data ──
+  var ORIGINAL = [
+    // ========== SPOT THE BUG (Q1-Q8) ==========
+    {
+      q: "Spot the bug: What is wrong with this code?",
+      diagram: diagramQ1,
+      options: [
+        "strcpy should be replaced with strncpy for safety",
+        "dst is declared but never allocated — strcpy writes through an uninitialized pointer, causing undefined behavior (likely a segfault)",
+        "src should be declared as const char*",
+        "printf should use %c instead of %s"
+      ],
+      answer: 1,
+      explain: "The pointer dst is declared but never points to allocated memory. Writing through an uninitialized pointer is undefined behavior. The fix: allocate memory first with dst = malloc(strlen(src) + 1)."
+    },
+    {
+      q: "Spot the bug: This code copies a string. It runs without crashing. Is it correct?",
+      diagram: diagramQ2,
+      options: [
+        "Yes, strlen returns the full size needed for the string",
+        "No — malloc should use sizeof(char) instead of strlen",
+        "No — strlen returns the length WITHOUT the null terminator, so malloc allocates one byte too few. strcpy writes a '\\0' past the allocated region (buffer overflow)",
+        "No — strcpy should be replaced with memcpy"
+      ],
+      answer: 2,
+      explain: "strlen(\"hello\") returns 5, but \"hello\" needs 6 bytes (including '\\0'). The correct call is malloc(strlen(src) + 1). This is a classic off-by-one error that may appear to work but corrupts memory."
+    },
+    {
+      q: "Spot the bug: Two pointers alias the same allocation. What goes wrong?",
+      diagram: diagramQ5,
+      options: [
+        "You cannot assign one pointer to another in C",
+        "The array data is corrupted when q is assigned",
+        "free(q) is a double free — p and q point to the same memory, and it was already freed via free(p). This is undefined behavior",
+        "free(p) frees the pointer variable p, not the memory it points to"
+      ],
+      answer: 2,
+      explain: "Since q = p, both pointers hold the same address. free(p) releases the memory. free(q) then frees the same address a second time — this is a double free, which causes undefined behavior and often crashes or corrupts the heap."
+    },
+    {
+      q: "Spot the bug: What happens when this code runs?",
+      diagram: diagramQ6,
+      options: [
+        "It prints 'value: 42' because the memory still holds that value",
+        "It always prints 'value: 0' because free zeroes memory",
+        "Use after free: data is a dangling pointer after free(data). Reading data[0] is undefined behavior — it might print 42, garbage, or crash",
+        "It crashes at free(data) because you can't free an array"
+      ],
+      answer: 2,
+      explain: "After free(data), the pointer data is dangling — it points to memory that has been returned to the allocator. Accessing data[0] is undefined behavior. The insidious part: it might appear to work (still printing 42) in testing, hiding the bug."
+    },
+    {
+      q: "Spot the bug: This function is called thousands of times in a long-running server. What's the problem?",
+      diagram: diagramQ7,
+      options: [
+        "sprintf is unsafe; should use snprintf",
+        "256 bytes is too much for a short string",
+        "Memory leak: buf is allocated inside the loop but never freed. Each iteration leaks 256 bytes. Over thousands of calls, the process consumes unbounded memory",
+        "malloc(256) doesn't allocate enough for long item names"
+      ],
+      answer: 2,
+      explain: "Each iteration calls malloc(256) but never calls free(buf). For a short-lived program, the OS reclaims memory on exit. But in a long-running server, this leak accumulates and will eventually exhaust memory. The fix: add free(buf) before the closing brace of the loop."
+    },
+    {
+      q: "Spot the bug: What is wrong with this function?",
+      diagram: diagramQ8,
+      options: [
+        "x should be declared as a pointer",
+        "free(&x) passes a stack address to free — x was not allocated by malloc. This is an invalid free and causes undefined behavior",
+        "The function is missing a return statement",
+        "You need to set x = 0 before calling free"
+      ],
+      answer: 1,
+      explain: "The variable x lives on the stack (automatic memory). Only pointers returned by malloc/calloc/realloc may be passed to free. Passing a stack address to free corrupts the heap allocator's internal data structures."
+    },
+    {
+      q: "Spot the bug: This code allocates memory but never checks for failure. What can happen?",
+      diagram: diagramQ14,
+      options: [
+        "Nothing — malloc never returns NULL on modern systems",
+        "The code works fine because the OS always has enough memory",
+        "If malloc returns NULL (out of memory), the code dereferences a NULL pointer at mat[i] or mat[0][0], causing a segfault. Should check malloc's return value",
+        "sizeof(int *) is always the same as sizeof(int), so the allocation is wrong"
+      ],
+      answer: 2,
+      explain: "malloc can return NULL when memory is exhausted. If mat is NULL, mat[i] dereferences NULL. If any mat[i] is NULL, mat[i][j] crashes. Production code should always check malloc's return value and handle failure gracefully."
+    },
+    {
+      q: "Spot the bug: What is wrong with this code?",
+      diagram: diagramQ15,
+      options: [
+        "val should be declared static for the function to work",
+        "Returning &val gives the caller a pointer to a stack-allocated variable. When create_value() returns, val's stack frame is reclaimed — p is a dangling pointer to invalid memory",
+        "The code is correct — val persists because p holds a reference to it",
+        "The ampersand (&) operator is not valid on local variables"
+      ],
+      answer: 1,
+      explain: "Local variables live on the stack and are destroyed when the function returns. Returning a pointer to a local is a classic dangling-pointer bug. The fix: allocate on the heap with malloc, or use a static variable (with caveats)."
+    },
+
+    // ========== WHAT DOES THIS PRINT? (Q9-Q11) ==========
+    {
+      q: "What does this code print on a typical 64-bit system?",
+      diagram: diagramQ3,
+      options: [
+        "40 (the total bytes allocated: 10 ints * 4 bytes each)",
+        "10 (the number of elements allocated)",
+        "8 (the size of the pointer x, not the allocated region — sizeof on a pointer always returns the pointer size)",
+        "4 (the size of a single int)"
+      ],
+      answer: 2,
+      explain: "sizeof(x) returns the size of the pointer variable x, which is 8 bytes on a 64-bit system. It does NOT return the size of the malloc'd region. The allocator tracks that internally, but sizeof has no way to know it — sizeof is resolved at compile time."
+    },
+    {
+      q: "What does this code print on a 64-bit system where sizeof(int) is 4?",
+      diagram: diagramQ4,
+      options: [
+        "A: 40, B: 40 — both hold 10 ints",
+        "A: 40, B: 8 — sizeof knows the static array size but only returns the pointer size for ptr",
+        "A: 8, B: 8 — sizeof always returns pointer size",
+        "A: 10, B: 10 — sizeof returns the element count"
+      ],
+      answer: 1,
+      explain: "sizeof(arr) returns 40 (10 * 4 bytes) because arr is a statically-declared array — the compiler knows its full size. sizeof(ptr) returns 8 because ptr is a pointer, and the compiler only knows its pointer size. This is a critical distinction in C."
+    },
+    {
+      q: "On a 64-bit system, what does this print? (Assume no struct padding changes.)",
+      diagram: diagramQ9,
+      options: [
+        "80 80 — sizeof always gives the struct size",
+        "8 80 — sizeof(s) is the pointer size (8), sizeof(*s) is the struct size (4 + 64 + 8 = 76, padded to 80)",
+        "76 76 — no padding in structs",
+        "8 8 — both are pointers"
+      ],
+      answer: 1,
+      explain: "s is a pointer to a Student, so sizeof(s) is 8 (pointer size on 64-bit). *s is the actual Student struct, so sizeof(*s) gives the struct size. This is why malloc(sizeof(*s)) is often preferred over malloc(sizeof(Student)) — it stays correct even if you change the type of s."
+    },
+
+    // ========== WHICH FIX IS CORRECT? (Q12-Q15) ==========
+    {
+      q: "The string copy below has a buffer overflow. Which fix is correct?",
+      diagram: diagramQ11,
+      options: [
+        "Change to: char *dst = malloc(strlen(src + 1));",
+        "Change to: char *dst = malloc(strlen(src) + 1);",
+        "Change to: char *dst = malloc(sizeof(src));",
+        "Change to: char *dst = malloc(sizeof(src) + 1);"
+      ],
+      answer: 1,
+      explain: "malloc(strlen(src) + 1) is correct — it allocates space for all characters plus the null terminator. Option A is wrong: strlen(src + 1) passes a different string (starting from the 2nd character). Option C is wrong: sizeof(src) returns the pointer size (8), not the string length. Option D has the same problem."
+    },
+    {
+      q: "This function frees memory before returning it. Which fix correctly solves the problem?",
+      diagram: diagramQ12,
+      options: [
+        "Move free(msg) to after the return statement",
+        "Remove the free(msg) call entirely — let the caller be responsible for freeing the returned pointer",
+        "Change to: return &msg;",
+        "Add msg = malloc(32); after the free call"
+      ],
+      answer: 1,
+      explain: "The function should return the allocated pointer and let the caller free it when done. Code after return never executes (option A). Returning &msg returns a pointer to a local pointer variable (option C). Re-allocating after free (option D) gives different memory with undefined contents."
+    },
+    {
+      q: "This function has a memory leak. Which fix is correct?",
+      diagram: diagramQ13,
+      options: [
+        "Replace malloc(1024) with a stack array: char buf[1024]; — then buf is automatically freed when the function returns",
+        "Add free(result) before the return statement",
+        "Add free(buf) and free(result) before the return statement",
+        "Replace both mallocs with calloc"
+      ],
+      answer: 0,
+      explain: "The temporary buffer buf is never freed — that's the leak. Using a stack-allocated array (char buf[1024]) eliminates the need for malloc/free for the temporary buffer. Option B frees the returned data (bad). Option C frees both (can't use result). Option D still leaks."
+    },
+    {
+      q: "This code uses the wrong sizeof in malloc. What's the bug and which fix is correct?",
+      diagram: diagramQ16,
+      options: [
+        "sizeof(Point *) is the size of a pointer (8 bytes), not a Point struct. Fix: malloc(10 * sizeof(Point))",
+        "The code is correct — sizeof(Point *) gives the right size for an array of Points",
+        "Fix: malloc(10 * sizeof(*points)) — but only because Point might not be defined yet",
+        "Fix: calloc(10, sizeof(Point *)) — calloc handles struct sizing automatically"
+      ],
+      answer: 0,
+      explain: "sizeof(Point *) is 8 bytes (pointer size), but each Point struct is much larger (4+4+32 = 40 bytes). Allocating 10 * 8 = 80 bytes for 10 structs that need 400 bytes causes a massive buffer overflow when accessing points[1] and beyond."
+    },
+
+    // ========== CONCEPTUAL QUESTIONS (Q16-Q20) ==========
+    {
+      q: "Why doesn't the free() function require you to pass the size of the allocated region?",
+      diagram: function() {
+        return codeBlock(
+          s(KW, 'int') + ' *p = ' + s(FN, 'malloc') + '(100 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+          s(CM, '// ... use p ...') + '\n' +
+          s(FN, 'free') + '(p);  ' + s(CM, '// How does free know to release 400 bytes?') + '\n'
+        );
+      },
+      options: [
+        "free() always releases exactly one page (4096 bytes) of memory",
+        "The compiler inserts the size information at compile time",
+        "The memory allocator (malloc library) internally tracks the size of each allocation — typically in a header just before the returned pointer",
+        "free() uses sizeof(p) to determine how much to release"
+      ],
+      answer: 2,
+      explain: "When malloc allocates memory, it stores bookkeeping information (including the allocation size) in a header just before the pointer it returns. When free is called, it reads this header to know how much memory to release. This is why you must never free a pointer that wasn't returned by malloc."
+    },
+    {
+      q: "malloc() is a library call, not a system call. Why does this distinction matter?",
+      diagram: function() {
+        return '<div class="diagram"><div style="font-family:var(--mono);font-size:.85rem;line-height:1.8;text-align:center">' +
+          '<div style="display:inline-block;border:2px solid var(--fg);border-radius:10px;padding:10px 20px;margin:4px">' +
+            '<span style="font-weight:700">Your program</span><br>' +
+            '<span style="font-size:.8rem;color:var(--muted)">calls malloc() / free()</span>' +
+          '</div>' +
+          '<div style="font-size:1.2rem">&#8595;</div>' +
+          '<div style="display:inline-block;border:2px solid var(--fn);border-radius:10px;padding:10px 20px;margin:4px;background:color-mix(in srgb, var(--fn) 10%, Canvas 90%)">' +
+            '<span style="font-weight:700;color:var(--fn)">C Library (malloc/free)</span><br>' +
+            '<span style="font-size:.8rem;color:var(--muted)">manages heap space, keeps free lists</span>' +
+          '</div>' +
+          '<div style="font-size:1.2rem">&#8595;</div>' +
+          '<div style="display:inline-block;border:2px solid var(--kw);border-radius:10px;padding:10px 20px;margin:4px;background:color-mix(in srgb, var(--kw) 10%, Canvas 90%)">' +
+            '<span style="font-weight:700;color:var(--kw)">OS Kernel (brk/sbrk/mmap)</span><br>' +
+            '<span style="font-size:.8rem;color:var(--muted)">grows/shrinks process heap, maps pages</span>' +
+          '</div>' +
+        '</div></div>';
+      },
+      options: [
+        "It doesn't matter — library calls and system calls are the same thing",
+        "malloc manages memory within user space (fast, no kernel transition), only calling system calls like brk/sbrk/mmap when it needs more memory from the OS. This two-level design avoids expensive kernel transitions on every allocation",
+        "malloc is a system call in newer versions of Linux",
+        "Library calls are slower than system calls because they go through an extra layer"
+      ],
+      answer: 1,
+      explain: "malloc is a user-space library function that manages a pool of memory. It only makes system calls (brk, sbrk, mmap) when it needs to grow or shrink the heap. This is efficient because most malloc/free calls are handled entirely in user space without a kernel transition."
+    },
+    {
+      q: "When is it acceptable to NOT call free() for memory you've malloc'd?",
+      diagram: function() {
+        return codeBlock(
+          s(KW, 'int') + ' main() {\n' +
+          '    ' + s(KW, 'int') + ' *data = ' + s(FN, 'malloc') + '(1000000);\n' +
+          '    ' + s(CM, '// ... do some computation ...') + '\n' +
+          '    ' + s(FN, 'printf') + '(' + s(ST, '"Result: %d\\n"') + ', data[0]);\n' +
+          '    ' + s(CM, '// no free(data) — is this OK?') + '\n' +
+          '    ' + s(KW, 'return') + ' 0;\n' +
+          '}\n'
+        );
+      },
+      options: [
+        "Never — every malloc must have a corresponding free, period",
+        "When the program is about to exit: the OS reclaims ALL of a process's memory on exit. For short-lived programs, leaking is harmless. But for long-running programs (servers, daemons), leaks are deadly",
+        "Whenever the allocated block is smaller than 4096 bytes",
+        "Only when using calloc instead of malloc"
+      ],
+      answer: 1,
+      explain: "There are two levels of memory management: the OS level (which reclaims everything when a process dies) and the process level (malloc/free). For a short-lived program, not freeing is fine — the OS cleans up. But for a long-running process, every unfree'd malloc is a leak that accumulates over time."
+    },
+    {
+      q: "What is the difference between calloc() and malloc() followed by memset()?",
+      diagram: function() {
+        return codeBlock(
+          s(CM, '// Approach A: malloc + memset') + '\n' +
+          s(KW, 'int') + ' *a = ' + s(FN, 'malloc') + '(10 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+          s(FN, 'memset') + '(a, 0, 10 * ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n' +
+          '\n' +
+          s(CM, '// Approach B: calloc') + '\n' +
+          s(KW, 'int') + ' *b = ' + s(FN, 'calloc') + '(10, ' + s(KW, 'sizeof') + '(' + s(KW, 'int') + '));\n'
+        );
+      },
+      options: [
+        "They are completely identical in every way",
+        "calloc is faster because it never actually zeroes memory",
+        "calloc allocates AND zeroes memory in one call. Unlike malloc+memset, calloc takes two arguments (count and size), making it harder to get the size wrong. Both produce zeroed memory, but calloc is more concise and less error-prone",
+        "calloc uses stack memory while malloc uses heap memory"
+      ],
+      answer: 2,
+      explain: "calloc(n, size) allocates n*size bytes and zeroes them. It's equivalent to malloc + memset, but the two-argument interface (count, element_size) makes buffer-size calculation clearer and less prone to overflow bugs. Both allocate from the heap."
+    },
+    {
+      q: "Spot the bug: This code reads from uninitialized memory. What will happen?",
+      diagram: diagramQ10,
+      options: [
+        "sum will always be 0 because malloc zeroes memory",
+        "The compiler will catch this error and refuse to compile",
+        "Undefined behavior: malloc does NOT zero memory. arr contains whatever garbage was previously in that memory region. sum will be an unpredictable value. Use calloc() or explicitly initialize the array",
+        "The code is correct — int arrays are always initialized to 0 in C"
+      ],
+      answer: 2,
+      explain: "Unlike calloc, malloc does not initialize the allocated memory. Reading from uninitialized memory is undefined behavior — the values could be anything. The program might appear to work in testing (if the memory happens to be zeroed) but fail unpredictably in production."
+    }
+  ];
+
+  // ── Quiz engine (same as other quizzes) ──
+  var els = {
+    qText: document.getElementById('qText'),
+    diagramArea: document.getElementById('diagramArea'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  var state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function deepClone(x) {
+    return JSON.parse(JSON.stringify(x));
+  }
+
+  function shuffleInPlace(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    var q = ORIGINAL.map(function(item) {
+      return {
+        q: item.q,
+        options: item.options.slice(),
+        answer: item.answer,
+        explain: item.explain,
+        diagram: item.diagram
+      };
+    });
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        var opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        var newOptions = opts.map(function(o) { return o.text; });
+        var newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain,
+          diagram: item.diagram
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    var correct = 0;
+    var answered = 0;
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    var s = scoreNow();
+    els.pillScore.textContent = 'Score: ' + s.correct + '/' + s.total + ' (answered ' + s.answered + '/' + s.total + ')';
+
+    var pct = s.total ? Math.round((s.answered / s.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    var item = state.quiz[state.idx];
+    var correctIdx = item.answer;
+    var isCorrect = chosenIdx === correctIdx;
+    var correctText = item.options[correctIdx];
+
+    var tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    var html = '';
+    html += '<div>';
+    html += '<span class="tag ' + (isCorrect ? 'good' : 'bad') + '">' + tagText + '</span>';
+    if (!isCorrect) {
+      html += 'Correct answer: <strong>' + escapeHtml(correctText) + '</strong>';
+    }
+    html += '</div>';
+    html += '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+
+    els.feedback.innerHTML = html;
+    els.feedback.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    var s = scoreNow();
+    if (s.answered !== s.total) {
+      els.results.hidden = true;
+      els.results.innerHTML = '';
+      return;
+    }
+
+    var pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+
+    var missed = [];
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        var it = state.quiz[i];
+        var chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    var missedHtml = '';
+    if (missed.length) {
+      missedHtml += '<div class="missed">';
+      missed.forEach(function(m) {
+        missedHtml += '<div class="item">';
+        missedHtml += '<div><strong>Q' + (m.i + 1) + '.</strong> ' + escapeHtml(m.q) + '</div>';
+        missedHtml += '<div class="small">Your answer: <code>' + escapeHtml(m.chosen) + '</code></div>';
+        missedHtml += '<div class="small">Correct: <code>' + escapeHtml(m.correct) + '</code></div>';
+        missedHtml += '<div class="small">' + escapeHtml(m.explain) + '</div>';
+        missedHtml += '</div>';
+      });
+      missedHtml += '</div>';
+    } else {
+      missedHtml = '<div class="missed"><div class="item"><strong>Nice.</strong> You got everything correct.</div></div>';
+    }
+
+    els.results.hidden = false;
+    els.results.innerHTML =
+      '<h2>Results</h2>' +
+      '<div class="pill" style="margin-bottom:10px;">Final score: <strong>' + s.correct + '/' + s.total + '</strong> (' + pct + '%)</div>' +
+      missedHtml;
+  }
+
+  function render() {
+    var item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    // Render diagram
+    if (item.diagram) {
+      els.diagramArea.innerHTML = item.diagram();
+    } else {
+      els.diagramArea.innerHTML = '';
+    }
+
+    els.opts.innerHTML = '';
+    var chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      var btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      var alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.innerHTML = '<div class="explain">' + escapeHtml(item.explain) + '</div>';
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>

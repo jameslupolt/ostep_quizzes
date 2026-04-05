@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSTEP Chapter 15 Quiz — Address Translation</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: color-mix(in srgb, CanvasText 65%, Canvas 35%);
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+      --good: #1a7f37;
+      --bad: #b42318;
+      --focus: #2563eb;
+      --shadow: 0 8px 28px rgba(0,0,0,.12);
+      --radius: 14px;
+      --pad: 18px;
+      --max: 920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --kw: #7c3aed;
+      --fn: #0369a1;
+      --str: #16a34a;
+      --bug-bg: color-mix(in srgb, var(--bad) 8%, transparent 92%);
+    }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    header {
+      padding: 26px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 96%, CanvasText 4%);
+    }
+    header .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 6px 0;
+      letter-spacing: .2px;
+    }
+    .subtitle {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: .98rem;
+    }
+    main {
+      padding: 18px;
+    }
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--pad);
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .92rem;
+      color: var(--muted);
+      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+    }
+    .progress {
+      width: 280px;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: color-mix(in srgb, var(--focus) 70%, Canvas 30%);
+      transition: width .25s ease;
+    }
+    .q {
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+
+    /* ── visual diagram area ── */
+    .diagram {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in srgb, Canvas 97%, CanvasText 3%);
+      overflow-x: auto;
+    }
+
+    /* caption under diagrams */
+    .diagram-caption {
+      margin-top: 8px;
+      text-align: center;
+      font-size: .85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .opts {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    button.opt {
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+    button.opt:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.opt:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.opt[disabled] {
+      cursor: default;
+      opacity: .95;
+    }
+    .feedback {
+      margin-top: 12px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 90%, CanvasText 10%);
+    }
+    .feedback.good {
+      border-color: color-mix(in srgb, var(--good) 55%, var(--border) 45%);
+    }
+    .feedback.bad {
+      border-color: color-mix(in srgb, var(--bad) 55%, var(--border) 45%);
+    }
+    .feedback .tag {
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .feedback .tag.good {
+      color: var(--good);
+    }
+    .feedback .tag.bad {
+      color: var(--bad);
+    }
+    .explain {
+      margin-top: 6px;
+      color: var(--muted);
+    }
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button.action {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      color: var(--fg);
+      cursor: pointer;
+      font-size: .98rem;
+    }
+    button.action:hover {
+      border-color: color-mix(in srgb, var(--focus) 55%, var(--border) 45%);
+    }
+    button.action[disabled] {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .toggles {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .toggles label {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .results {
+      margin-top: 14px;
+      border-top: 1px dashed var(--border);
+      padding-top: 14px;
+    }
+    .results h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.15rem;
+    }
+    .missed {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .missed .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+    }
+    .missed .item .small {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    footer {
+      padding: 18px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    footer .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .95em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>OSTEP Chapter 15 Quiz &mdash; Address Translation</h1>
+      <p class="subtitle">Base and bounds, dynamic relocation, and the hardware/OS split that makes virtual memory work.</p>
+      <div class="row">
+        <div class="meta">
+          <span class="pill" id="pillCount">Questions: &mdash;</span>
+          <span class="pill" id="pillScore">Score: &mdash;</span>
+          <span class="pill" id="pillMode">Mode: Practice</span>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div class="bar" id="bar"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <div class="q" id="qText">Loading&hellip;</div>
+        <div id="diagramArea"></div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback" hidden></div>
+
+        <div class="controls">
+          <div class="btns">
+            <button class="action" id="prevBtn">&larr; Previous</button>
+            <button class="action" id="nextBtn">Next &rarr;</button>
+            <button class="action" id="restartBtn" title="Restart quiz and clear answers">Restart</button>
+          </div>
+
+          <div class="toggles">
+            <label title="Shuffle questions and answer options when starting/restarting">
+              <input type="checkbox" id="shuffleToggle" />
+              Shuffle
+            </label>
+            <label title="Reveal the correct answer + explanation immediately after you pick">
+              <input type="checkbox" id="instantToggle" checked />
+              Instant feedback
+            </label>
+          </div>
+        </div>
+
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div><strong>Source:</strong> Based on Chapter 15 (Mechanism: Address Translation) from <em>Operating Systems: Three Easy Pieces</em> (version 1.10).</div>
+      <div style="margin-top:6px;">Tip: This is a standalone file &mdash; open it in any modern browser. No internet required.</div>
+    </div>
+  </footer>
+
+<script>
+(function() {
+  // ── Diagram helpers ──
+
+  function memBox(label, color, width) {
+    return '<div style="display:inline-block;border:2px solid ' + color +
+      ';border-radius:8px;padding:8px 14px;margin:4px;min-width:' + (width || 120) +
+      'px;text-align:center;background:color-mix(in srgb, ' + color + ' 10%, Canvas 90%)">' +
+      label + '</div>';
+  }
+
+  // ── Diagrams ──
+
+  // Translation formula
+  function diagramTranslation() {
+    return '<div class="diagram" style="text-align:center;font-family:var(--mono);font-size:.95rem;line-height:2">' +
+      '<div style="margin-bottom:8px;font-family:var(--sans);font-weight:600;font-size:.9rem;color:var(--muted)">Hardware Translation (every memory reference)</div>' +
+      '<div style="display:inline-block;border:2px solid var(--kw);border-radius:10px;padding:10px 20px;background:color-mix(in srgb, var(--kw) 8%, Canvas 92%)">' +
+        '<span style="color:var(--kw);font-weight:700">physical address</span> = <span style="color:var(--fn);font-weight:600">virtual address</span> + <span style="color:var(--str)">base</span>' +
+      '</div>' +
+      '<div style="margin-top:10px;font-size:.85rem;color:var(--muted)">The CPU adds the base register to every virtual address the process generates.</div>' +
+    '</div>';
+  }
+
+  // Bounds check
+  function diagramBoundsCheck() {
+    return '<div class="diagram" style="text-align:center;font-family:var(--mono);font-size:.9rem;line-height:2">' +
+      '<div style="margin-bottom:8px;font-family:var(--sans);font-weight:600;font-size:.9rem;color:var(--muted)">Hardware Bounds Check (every memory reference)</div>' +
+      '<div style="display:inline-block;border:2px solid var(--fn);border-radius:10px;padding:10px 20px;background:color-mix(in srgb, var(--fn) 8%, Canvas 92%)">' +
+        '<span style="color:var(--kw);font-weight:700">if</span> (<span style="color:var(--fn);font-weight:600">virtual address</span> &lt; 0 || <span style="color:var(--fn);font-weight:600">virtual address</span> &gt;= <span style="color:var(--str)">bounds</span>)<br>' +
+        '&nbsp;&nbsp;<span style="color:var(--bad);font-weight:700">raise exception</span> <span style="color:var(--muted)">// trap to OS</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Numeric example
+  function diagramExample1() {
+    return '<div class="diagram" style="font-family:var(--mono);font-size:.85rem;line-height:1.7">' +
+      '<div style="margin-bottom:8px;font-family:var(--sans);font-weight:600;font-size:.9rem;color:var(--muted)">Process address space (16 KB) loaded at physical address 32 KB</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:500px;margin:0 auto">' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Base register</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">32 KB (32768)</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Bounds register</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">16 KB (16384)</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);font-weight:600">Virtual address</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">2000</td></tr>' +
+      '</table>' +
+    '</div>';
+  }
+
+  // Out of bounds
+  function diagramOOB() {
+    return '<div class="diagram" style="font-family:var(--mono);font-size:.85rem;line-height:1.7">' +
+      '<div style="margin-bottom:8px;font-family:var(--sans);font-weight:600;font-size:.9rem;color:var(--muted)">A process tries to access virtual address 17000</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:500px;margin:0 auto">' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Base register</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">32 KB (32768)</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Bounds register</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">16 KB (16384)</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);font-weight:600">Virtual address</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border);color:var(--bad);font-weight:700">17000</td></tr>' +
+      '</table>' +
+    '</div>';
+  }
+
+  // Physical memory map
+  function diagramPhysicalMemory() {
+    var row = function(addr, label, bg) {
+      return '<tr>' +
+        '<td style="padding:4px 10px;border:1px solid var(--border);font-family:var(--mono);font-size:.82rem;width:70px;text-align:right">' + addr + '</td>' +
+        '<td style="padding:6px 12px;border:1px solid var(--border);background:' + bg + '">' + label + '</td>' +
+      '</tr>';
+    };
+    return '<div class="diagram" style="font-family:var(--sans);font-size:.88rem;line-height:1.5">' +
+      '<div style="margin-bottom:8px;font-weight:600;font-size:.9rem;color:var(--muted)">Physical memory layout (64 KB total)</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:420px;margin:0 auto">' +
+        row('0 KB', '<strong>Operating System</strong>', 'color-mix(in srgb, var(--kw) 12%, Canvas 88%)') +
+        row('16 KB', '<em>(free)</em>', 'color-mix(in srgb, Canvas 95%, CanvasText 5%)') +
+        row('32 KB', '<strong>Process A</strong> &nbsp; (address space: 16 KB)', 'color-mix(in srgb, var(--fn) 12%, Canvas 88%)') +
+        row('48 KB', '<em>(free)</em>', 'color-mix(in srgb, Canvas 95%, CanvasText 5%)') +
+      '</table>' +
+      '<div style="margin-top:8px;font-size:.82rem;color:var(--muted);text-align:center">Process A: base = 32 KB, bounds = 16 KB</div>' +
+    '</div>';
+  }
+
+  // Context switch
+  function diagramContextSwitch() {
+    return '<div class="diagram" style="text-align:center;font-family:var(--sans);font-size:.88rem;line-height:1.6">' +
+      '<div style="margin-bottom:10px;font-weight:600;font-size:.9rem;color:var(--muted)">Context switch: Process A &rarr; Process B</div>' +
+      '<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:center">' +
+        memBox('<strong>Process A</strong><br><span style="font-size:.82rem">base=32KB, bounds=16KB</span>', 'var(--fn)', 160) +
+        '<span style="font-size:1.5rem">&#8594;</span>' +
+        memBox('<strong>OS saves A\'s regs</strong><br><span style="font-size:.82rem">loads B\'s base/bounds</span>', 'var(--kw)', 180) +
+        '<span style="font-size:1.5rem">&#8594;</span>' +
+        memBox('<strong>Process B</strong><br><span style="font-size:.82rem">base=48KB, bounds=12KB</span>', 'var(--str)', 160) +
+      '</div>' +
+    '</div>';
+  }
+
+  // Hardware requirements
+  function diagramHardwareReqs() {
+    return '<div class="diagram" style="font-family:var(--sans);font-size:.88rem;line-height:1.6">' +
+      '<div style="margin-bottom:8px;font-weight:600;font-size:.9rem;color:var(--muted)">Hardware support required for dynamic relocation</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:540px;margin:0 auto">' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600;width:40%">Privileged mode</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Prevent user programs from changing base/bounds</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Base/bounds registers</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Per-CPU pair of registers for translation</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Translate &amp; check</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Circuitry to add base and compare against bounds</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Privileged instructions</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">To update base/bounds (kernel mode only)</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Exception raising</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Trap to OS on out-of-bounds access</td></tr>' +
+      '</table>' +
+    '</div>';
+  }
+
+  // Two processes same virtual address
+  function diagramTwoProcesses() {
+    return '<div class="diagram" style="font-family:var(--sans);font-size:.88rem;line-height:1.6">' +
+      '<div style="margin-bottom:8px;font-weight:600;font-size:.9rem;color:var(--muted)">Two processes both access virtual address 1000</div>' +
+      '<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">' +
+        '<div style="border:2px solid var(--fn);border-radius:10px;padding:12px 18px;text-align:center;background:color-mix(in srgb, var(--fn) 8%, Canvas 92%)">' +
+          '<div style="font-weight:700">Process A</div>' +
+          '<div style="font-family:var(--mono);font-size:.82rem;margin-top:4px">base = 10000</div>' +
+          '<div style="font-family:var(--mono);font-size:.82rem">virtual addr = 1000</div>' +
+        '</div>' +
+        '<div style="border:2px solid var(--str);border-radius:10px;padding:12px 18px;text-align:center;background:color-mix(in srgb, var(--str) 8%, Canvas 92%)">' +
+          '<div style="font-weight:700">Process B</div>' +
+          '<div style="font-family:var(--mono);font-size:.82rem;margin-top:4px">base = 28000</div>' +
+          '<div style="font-family:var(--mono);font-size:.82rem">virtual addr = 1000</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Internal fragmentation
+  function diagramInternalFrag() {
+    var row = function(label, bg, height) {
+      return '<div style="border:1px solid var(--border);padding:8px 14px;background:' + bg +
+        ';min-height:' + height + 'px;display:flex;align-items:center">' + label + '</div>';
+    };
+    return '<div class="diagram" style="font-family:var(--sans);font-size:.88rem;line-height:1.5">' +
+      '<div style="margin-bottom:8px;font-weight:600;font-size:.9rem;color:var(--muted)">Address space allocated for a process (16 KB bounds)</div>' +
+      '<div style="max-width:320px;margin:0 auto;border:2px solid var(--fn);border-radius:8px;overflow:hidden">' +
+        row('<strong>Code</strong> <span style="color:var(--muted);font-size:.82rem">(2 KB used)</span>', 'color-mix(in srgb, var(--fn) 12%, Canvas 88%)', 28) +
+        row('<strong>Heap</strong> <span style="color:var(--muted);font-size:.82rem">(3 KB used)</span>', 'color-mix(in srgb, var(--str) 12%, Canvas 88%)', 28) +
+        row('<em style="color:var(--muted)">(free / unused)</em> <span style="color:var(--muted);font-size:.82rem">(9 KB wasted)</span>', 'color-mix(in srgb, var(--bad) 6%, Canvas 94%)', 60) +
+        row('<strong>Stack</strong> <span style="color:var(--muted);font-size:.82rem">(2 KB used)</span>', 'color-mix(in srgb, var(--kw) 12%, Canvas 88%)', 28) +
+      '</div>' +
+      '<div style="margin-top:8px;text-align:center;font-size:.82rem;color:var(--muted)">The entire 16 KB is allocated in physical memory, even though only 7 KB is actually used.</div>' +
+    '</div>';
+  }
+
+  // OS responsibilities
+  function diagramOSResp() {
+    return '<div class="diagram" style="font-family:var(--sans);font-size:.88rem;line-height:1.6">' +
+      '<div style="margin-bottom:8px;font-weight:600;font-size:.9rem;color:var(--muted)">OS responsibilities for base-and-bounds</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:540px;margin:0 auto">' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600;width:42%">At boot</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Set up trap handlers; initialize free list of physical memory</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Process creation</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Find free space, mark as used, set base/bounds</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Process termination</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Reclaim memory, return to free list</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Context switch</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Save/restore base-bounds register pair</td></tr>' +
+        '<tr><td style="padding:6px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Exception handler</td>' +
+            '<td style="padding:6px 12px;border:1px solid var(--border)">Handle out-of-bounds traps (typically kill the process)</td></tr>' +
+      '</table>' +
+    '</div>';
+  }
+
+  // Relocation
+  function diagramRelocate() {
+    return '<div class="diagram" style="font-family:var(--mono);font-size:.85rem;line-height:1.7">' +
+      '<div style="margin-bottom:8px;font-family:var(--sans);font-weight:600;font-size:.9rem;color:var(--muted)">The OS relocates Process A from physical 32 KB to 48 KB</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:500px;margin:0 auto">' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);font-weight:600">Before</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">base = 32768, bounds = 16384</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);font-weight:600">After</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">base = <strong>49152</strong>, bounds = 16384</td></tr>' +
+      '</table>' +
+      '<div style="margin-top:8px;text-align:center;font-family:var(--sans);font-size:.82rem;color:var(--muted)">The process\'s virtual addresses stay the same. Only the base register changes.</div>' +
+    '</div>';
+  }
+
+  // MMU pipeline
+  function diagramMMU() {
+    return '<div class="diagram" style="text-align:center;font-family:var(--sans);font-size:.88rem;line-height:1.6">' +
+      '<div style="margin-bottom:10px;font-weight:600;font-size:.9rem;color:var(--muted)">CPU Memory Reference Pipeline</div>' +
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center">' +
+        memBox('<strong>CPU</strong><br><span style="font-size:.8rem">generates<br>virtual addr</span>', 'var(--fg)', 110) +
+        '<span style="font-size:1.3rem">&#8594;</span>' +
+        memBox('<strong style="color:var(--kw)">MMU</strong><br><span style="font-size:.8rem">translate +<br>bounds check</span>', 'var(--kw)', 120) +
+        '<span style="font-size:1.3rem">&#8594;</span>' +
+        memBox('<strong>Memory</strong><br><span style="font-size:.8rem">physical<br>address</span>', 'var(--fn)', 110) +
+      '</div>' +
+    '</div>';
+  }
+
+  // Calculation — larger example
+  function diagramCalc2() {
+    return '<div class="diagram" style="font-family:var(--mono);font-size:.85rem;line-height:1.7">' +
+      '<div style="margin-bottom:8px;font-family:var(--sans);font-weight:600;font-size:.9rem;color:var(--muted)">Process with a 4 KB address space</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:500px;margin:0 auto">' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--fn) 10%, Canvas 90%);font-weight:600">Base register</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">16384 (16 KB)</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);background:color-mix(in srgb, var(--kw) 10%, Canvas 90%);font-weight:600">Bounds register</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">4096 (4 KB)</td></tr>' +
+        '<tr><td style="padding:4px 12px;border:1px solid var(--border);font-weight:600">Instruction</td>' +
+            '<td style="padding:4px 12px;border:1px solid var(--border)">load from virtual address 3500</td></tr>' +
+      '</table>' +
+    '</div>';
+  }
+
+  // Free list
+  function diagramFreeList() {
+    var row = function(addr, label, bg) {
+      return '<tr>' +
+        '<td style="padding:4px 10px;border:1px solid var(--border);font-family:var(--mono);font-size:.82rem;width:70px;text-align:right">' + addr + '</td>' +
+        '<td style="padding:6px 12px;border:1px solid var(--border);background:' + bg + '">' + label + '</td>' +
+      '</tr>';
+    };
+    return '<div class="diagram" style="font-family:var(--sans);font-size:.88rem;line-height:1.5">' +
+      '<div style="margin-bottom:8px;font-weight:600;font-size:.9rem;color:var(--muted)">Physical memory after Process C exits</div>' +
+      '<table style="border-collapse:collapse;width:100%;max-width:420px;margin:0 auto">' +
+        row('0 KB', '<strong>OS</strong> (16 KB)', 'color-mix(in srgb, var(--kw) 12%, Canvas 88%)') +
+        row('16 KB', '<strong>Process A</strong> (16 KB)', 'color-mix(in srgb, var(--fn) 12%, Canvas 88%)') +
+        row('32 KB', '<strong style="color:var(--bad)">[ Process C exited ]</strong> (16 KB)', 'color-mix(in srgb, var(--bad) 8%, Canvas 92%)') +
+        row('48 KB', '<strong>Process B</strong> (16 KB)', 'color-mix(in srgb, var(--str) 12%, Canvas 88%)') +
+      '</table>' +
+    '</div>';
+  }
+
+  // ── Quiz data ──
+  var ORIGINAL = [
+    // ========== ADDRESS TRANSLATION BASICS (Q1-Q4) ==========
+    {
+      q: "In base-and-bounds (dynamic relocation), how does the hardware translate a virtual address to a physical address?",
+      diagram: diagramTranslation,
+      options: [
+        "physical = virtual - base",
+        "physical = virtual + base",
+        "physical = base - virtual",
+        "physical = virtual * base / bounds"
+      ],
+      answer: 1,
+      explain: "The hardware adds the base register to every virtual address the process generates. If the process references virtual address 100 and the base register is 32768, the hardware issues a load to physical address 32868. This happens transparently \u2014 the process thinks it starts at address 0."
+    },
+    {
+      q: "Given the registers below, what physical address does the hardware produce?",
+      diagram: diagramExample1,
+      options: [
+        "2000 \u2014 the virtual address is used directly",
+        "30768 \u2014 the base minus the virtual address (32768 - 2000)",
+        "34768 \u2014 the base plus the virtual address (32768 + 2000)",
+        "16384 \u2014 the bounds register value"
+      ],
+      answer: 2,
+      explain: "Physical address = base + virtual address = 32768 + 2000 = 34768. The process thinks it's accessing address 2000, but the hardware transparently redirects this to physical address 34768. Since 2000 < 16384 (bounds), the access is legal."
+    },
+    {
+      q: "What happens when the process tries to access virtual address 17000?",
+      diagram: diagramOOB,
+      options: [
+        "The hardware translates it to physical address 49768 (32768 + 17000)",
+        "The hardware raises an exception (trap to the OS) because 17000 exceeds the bounds register (16384). The OS will likely kill the offending process",
+        "The access wraps around to virtual address 616 (17000 mod 16384)",
+        "The hardware silently ignores the access and returns zero"
+      ],
+      answer: 1,
+      explain: "Before translating, the hardware checks: is 17000 < 16384? No \u2014 so it raises an out-of-bounds exception, trapping into the OS. The OS typically terminates the process with a segmentation fault. The translation to a physical address never happens."
+    },
+    {
+      q: "What is the result of this memory access?",
+      diagram: diagramCalc2,
+      options: [
+        "Fault \u2014 3500 exceeds the bounds of 4096... wait, it doesn't. Physical address = 19884",
+        "Fault \u2014 3500 is out of bounds",
+        "Physical address = 19884. Since 3500 < 4096 (in bounds), the hardware translates: 16384 + 3500 = 19884",
+        "Physical address = 12884 (16384 - 3500)"
+      ],
+      answer: 2,
+      explain: "First, bounds check: 3500 < 4096, so the access is legal. Then translate: 16384 + 3500 = 19884. The load goes to physical address 19884. If the virtual address had been 4096 or larger, the hardware would have faulted instead."
+    },
+
+    // ========== WHAT DOES THE HARDWARE DO? (Q5-Q8) ==========
+    {
+      q: "Two processes both access virtual address 1000. Do they access the same physical memory?",
+      diagram: diagramTwoProcesses,
+      options: [
+        "Yes \u2014 virtual address 1000 always maps to physical address 1000",
+        "No \u2014 Process A accesses physical 11000 (10000 + 1000) and Process B accesses physical 29000 (28000 + 1000). Same virtual address, different physical locations",
+        "No \u2014 one of them will get an out-of-bounds fault",
+        "Yes \u2014 the OS ensures both processes share the same physical page for efficiency"
+      ],
+      answer: 1,
+      explain: "Each process has its own base register. Process A: 10000 + 1000 = physical 11000. Process B: 28000 + 1000 = physical 29000. This is the whole point of address translation \u2014 each process gets the illusion of its own private memory starting at address 0."
+    },
+    {
+      q: "Which part of the CPU is responsible for performing address translation?",
+      diagram: diagramMMU,
+      options: [
+        "The arithmetic logic unit (ALU)",
+        "The memory management unit (MMU) \u2014 a part of the processor that translates virtual addresses to physical addresses on every memory reference",
+        "The operating system kernel's memory manager",
+        "The memory bus controller"
+      ],
+      answer: 1,
+      explain: "The MMU (memory management unit) is the hardware component within the CPU that handles address translation. It holds the base and bounds registers and performs the addition and comparison on every memory reference. This must be in hardware because it happens on every memory access \u2014 doing it in software would be far too slow."
+    },
+    {
+      q: "Why must address translation be performed in hardware rather than software?",
+      diagram: null,
+      options: [
+        "Software translation would require recompiling every program",
+        "Translation happens on every memory reference (including instruction fetches). If the OS had to intervene for each one, the overhead would be enormous \u2014 every load, store, and instruction fetch would require a trap to the kernel",
+        "Software can't perform addition",
+        "The OS doesn't have access to physical memory addresses"
+      ],
+      answer: 1,
+      explain: "A single instruction may generate multiple memory references (fetch the instruction, load/store data). If each required an OS trap, programs would be orders of magnitude slower. The hardware performs translation with minimal overhead \u2014 just an addition and a comparison on every reference."
+    },
+    {
+      q: "What is the purpose of having a privileged (kernel) mode for the base and bounds registers?",
+      diagram: diagramHardwareReqs,
+      options: [
+        "Kernel mode makes translation faster by bypassing bounds checks",
+        "Without privileged mode, a user program could change its own base/bounds registers to access any physical memory \u2014 completely breaking protection between processes",
+        "Privileged mode allows the CPU to use larger base register values",
+        "It lets the OS skip translation for its own memory accesses"
+      ],
+      answer: 1,
+      explain: "If user programs could modify the base and bounds registers, a malicious (or buggy) program could set its base to point to another process's memory or the OS itself. Restricting these registers to kernel mode means only the OS can set them, preserving the isolation that makes virtual memory useful."
+    },
+
+    // ========== OS RESPONSIBILITIES (Q9-Q12) ==========
+    {
+      q: "What must the OS do during a context switch to support base-and-bounds?",
+      diagram: diagramContextSwitch,
+      options: [
+        "Nothing \u2014 the hardware handles everything automatically",
+        "Save the current process's base/bounds to its process control block (PCB), then load the next process's base/bounds from its PCB into the hardware registers",
+        "Copy the current process's entire address space to disk",
+        "Remap all virtual addresses in the next process's code"
+      ],
+      answer: 1,
+      explain: "During a context switch, the OS saves the running process's base and bounds values (along with other registers) to its process structure in memory, then loads the new process's saved base and bounds into the hardware registers. This is what makes each process see its own private address space."
+    },
+    {
+      q: "When a process is created, what memory-related steps must the OS perform for base-and-bounds?",
+      diagram: diagramOSResp,
+      options: [
+        "Just set base = 0 and bounds = total physical memory size",
+        "Find a contiguous free region of physical memory large enough for the address space, mark it as used (in its free list), and set the base register to the start of that region and bounds to the address space size",
+        "Allocate a single page frame and map it to virtual address 0",
+        "Ask the hardware to find free memory automatically"
+      ],
+      answer: 1,
+      explain: "The OS must search its free list for a contiguous chunk of physical memory that fits the new process's address space. It marks that chunk as allocated, copies the program into it, sets the base register to the start of the chunk, and sets bounds to the size of the address space."
+    },
+    {
+      q: "What happens when the OS reclaims Process C's memory?",
+      diagram: diagramFreeList,
+      options: [
+        "The OS zeroes out the memory and marks it as read-only",
+        "The OS puts Process C's physical memory region (32 KB to 48 KB) back on its free list, so it can be used for future process allocations",
+        "The memory is permanently lost and cannot be reused",
+        "The OS automatically gives the memory to Process A or B"
+      ],
+      answer: 1,
+      explain: "When a process terminates, the OS returns its physical memory to the free list. The 16 KB chunk from 32 KB to 48 KB becomes available for new processes. This is why the OS must track which regions of physical memory are in use and which are free."
+    },
+    {
+      q: "The OS moves Process A from physical 32 KB to 48 KB. What must change, and what stays the same?",
+      diagram: diagramRelocate,
+      options: [
+        "The process's virtual addresses all change \u2014 every pointer in the program must be updated",
+        "The base register is updated to 49152 (48 KB). The process's virtual addresses and code are unchanged \u2014 it still thinks it starts at address 0. The OS copies the memory contents and updates the base register",
+        "Only the bounds register changes",
+        "Nothing changes \u2014 processes cannot be moved once placed"
+      ],
+      answer: 1,
+      explain: "This is the beauty of dynamic relocation: the OS can move a process in physical memory by (1) copying its memory to the new location and (2) updating the base register. The process is unaware \u2014 all its virtual addresses remain the same. This is why it's called relocation."
+    },
+
+    // ========== DEEPER CONCEPTS (Q13-Q18) ==========
+    {
+      q: "Where does the process's address space start from the process's own perspective?",
+      diagram: diagramPhysicalMemory,
+      options: [
+        "At physical address 32 KB, since that's where it's loaded",
+        "At virtual address 0 \u2014 the process has no idea where it's placed in physical memory. Address translation is completely transparent to the running program",
+        "At virtual address 32 KB, matching the physical location",
+        "At whatever address the compiler assigned"
+      ],
+      answer: 1,
+      explain: "Every process believes its address space starts at virtual address 0. The hardware transparently translates 0 to physical address 32768 (32 KB). The process never sees a physical address \u2014 this illusion is the whole point of address translation."
+    },
+    {
+      q: "What is the main drawback of base-and-bounds (the problem that motivates more advanced techniques)?",
+      diagram: diagramInternalFrag,
+      options: [
+        "Translation is too slow because it requires an addition on every memory access",
+        "Internal fragmentation: the entire address space (including unused space between the heap and stack) must be allocated contiguously in physical memory. Large regions of allocated physical memory sit unused, wasting RAM",
+        "Base-and-bounds doesn't support more than two processes",
+        "The bounds register is too small to hold modern address space sizes"
+      ],
+      answer: 1,
+      explain: "With base-and-bounds, the OS must allocate a contiguous physical region for the entire address space, even though much of it (the gap between heap and stack) is unused. This internal fragmentation wastes physical memory. Segmentation and paging address this by mapping only the used portions."
+    },
+    {
+      q: "Before dynamic (hardware) relocation, early systems used static relocation. What was its key weakness?",
+      diagram: null,
+      options: [
+        "Static relocation was slower than dynamic relocation",
+        "A software loader rewrote addresses in the program at load time, but once placed, the process couldn't be moved and there was no hardware protection \u2014 a buggy process could overwrite any physical address",
+        "Static relocation couldn't handle programs larger than physical memory",
+        "Static relocation required special compilers that only produced absolute addresses"
+      ],
+      answer: 1,
+      explain: "With static relocation, a loader rewrites all addresses in the binary before execution. But there's no hardware protection \u2014 a program could generate any physical address and the hardware would happily execute it. Dynamic relocation fixes this with hardware bounds checking on every access."
+    },
+    {
+      q: "In the base-and-bounds scheme, when does the OS run (as opposed to the hardware)?",
+      diagram: null,
+      options: [
+        "The OS translates every memory address and the hardware just executes instructions",
+        "The OS only runs at three key points: (1) at boot to set up trap handlers, (2) during process creation/termination to manage memory and set base/bounds, and (3) during context switches to save/restore base/bounds. Between these, the hardware does all translation",
+        "The OS and hardware alternate on every instruction",
+        "The OS runs continuously in the background monitoring all memory accesses"
+      ],
+      answer: 1,
+      explain: "This is the key hardware/OS split: the hardware handles the fast path (translating every memory reference and checking bounds). The OS handles the slow path (setup at boot, memory management at process create/destroy, and register save/restore at context switches). The OS is NOT involved in every memory access."
+    },
+    {
+      q: "A process has base = 20480 and bounds = 8192. Which of these virtual addresses will cause a fault?",
+      diagram: null,
+      options: [
+        "Virtual address 0 \u2014 you can't access address 0",
+        "Virtual address 8000 \u2014 it's close to the bounds",
+        "Virtual address 8192 \u2014 it equals the bounds register exactly, and valid addresses are 0 through bounds\u22121. The hardware checks virtual_addr >= bounds, so 8192 triggers a fault",
+        "Virtual address 4096 \u2014 it exceeds half the address space"
+      ],
+      answer: 2,
+      explain: "Valid virtual addresses range from 0 to bounds-1 (0 to 8191). Virtual address 8192 is exactly equal to bounds, which fails the check (virtual_addr >= bounds), so the hardware raises a fault. Address 0, 4096, and 8000 are all valid (less than 8192)."
+    },
+    {
+      q: "Why does the textbook say that base-and-bounds is also called \"dynamic relocation\"?",
+      diagram: null,
+      options: [
+        "Because the compiler dynamically chooses where to place variables",
+        "Because relocation happens dynamically at runtime \u2014 the hardware translates addresses as the program runs, and the OS can even move the process to a different physical location by updating the base register, all without the process knowing",
+        "Because the bounds register can change dynamically during execution",
+        "Because processes dynamically allocate their own base addresses"
+      ],
+      answer: 1,
+      explain: "The relocation (mapping virtual to physical) is \"dynamic\" because it happens at runtime via hardware, not at load time via software. This means the OS can relocate a process (move it in physical memory and update base) even while the program is running \u2014 the process is completely unaware."
+    }
+  ];
+
+  // ── Quiz engine ──
+  var els = {
+    qText: document.getElementById('qText'),
+    diagramArea: document.getElementById('diagramArea'),
+    opts: document.getElementById('opts'),
+    feedback: document.getElementById('feedback'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    bar: document.getElementById('bar'),
+    pillCount: document.getElementById('pillCount'),
+    pillScore: document.getElementById('pillScore'),
+    pillMode: document.getElementById('pillMode'),
+    shuffleToggle: document.getElementById('shuffleToggle'),
+    instantToggle: document.getElementById('instantToggle'),
+    results: document.getElementById('results'),
+  };
+
+  var state = {
+    quiz: [],
+    idx: 0,
+    answers: [],
+    correct: [],
+  };
+
+  function shuffleInPlace(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildQuiz(shuffle) {
+    var q = ORIGINAL.map(function(item) {
+      return {
+        q: item.q,
+        options: item.options.slice(),
+        answer: item.answer,
+        explain: item.explain,
+        diagram: item.diagram
+      };
+    });
+
+    if (shuffle) {
+      shuffleInPlace(q);
+
+      q = q.map(function(item) {
+        var opts = item.options.map(function(t, idx) { return { text: t, idx: idx }; });
+        shuffleInPlace(opts);
+
+        var newOptions = opts.map(function(o) { return o.text; });
+        var newAnswer = opts.findIndex(function(o) { return o.idx === item.answer; });
+
+        return {
+          q: item.q,
+          options: newOptions,
+          answer: newAnswer,
+          explain: item.explain,
+          diagram: item.diagram
+        };
+      });
+    }
+
+    state.quiz = q;
+    state.idx = 0;
+    state.answers = Array(q.length).fill(null);
+    state.correct = Array(q.length).fill(null);
+
+    els.pillCount.textContent = 'Questions: ' + q.length;
+    render();
+  }
+
+  function scoreNow() {
+    var correct = 0;
+    var answered = 0;
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (state.correct[i] !== null) {
+        answered++;
+        if (state.correct[i]) correct++;
+      }
+    }
+    return { correct: correct, answered: answered, total: state.quiz.length };
+  }
+
+  function updateHeader() {
+    var sc = scoreNow();
+    els.pillScore.textContent = 'Score: ' + sc.correct + '/' + sc.total + ' (answered ' + sc.answered + '/' + sc.total + ')';
+
+    var pct = sc.total ? Math.round((sc.answered / sc.total) * 100) : 0;
+    els.bar.style.width = pct + '%';
+  }
+
+  function setModeBadge() {
+    els.pillMode.textContent = 'Mode: ' + (els.shuffleToggle.checked ? 'Shuffled' : 'Ordered');
+  }
+
+  function hideFeedback() {
+    els.feedback.hidden = true;
+    els.feedback.textContent = '';
+    els.feedback.className = 'feedback';
+  }
+
+  function showFeedback(chosenIdx) {
+    var item = state.quiz[state.idx];
+    var correctIdx = item.answer;
+    var isCorrect = chosenIdx === correctIdx;
+    var correctText = item.options[correctIdx];
+
+    var tagText = isCorrect ? 'Correct' : 'Not quite';
+
+    els.feedback.className = 'feedback ' + (isCorrect ? 'good' : 'bad');
+
+    var fb = els.feedback;
+    fb.textContent = '';
+
+    var topDiv = document.createElement('div');
+    var tag = document.createElement('span');
+    tag.className = 'tag ' + (isCorrect ? 'good' : 'bad');
+    tag.textContent = tagText;
+    topDiv.appendChild(tag);
+
+    if (!isCorrect) {
+      var prefix = document.createTextNode('Correct answer: ');
+      topDiv.appendChild(prefix);
+      var strong = document.createElement('strong');
+      strong.textContent = correctText;
+      topDiv.appendChild(strong);
+    }
+    fb.appendChild(topDiv);
+
+    var explainDiv = document.createElement('div');
+    explainDiv.className = 'explain';
+    explainDiv.textContent = item.explain;
+    fb.appendChild(explainDiv);
+
+    fb.hidden = false;
+  }
+
+  function updateNav() {
+    els.prevBtn.disabled = (state.idx === 0);
+    els.nextBtn.disabled = (state.idx === state.quiz.length - 1);
+  }
+
+  function maybeShowResults() {
+    var sc = scoreNow();
+    if (sc.answered !== sc.total) {
+      els.results.hidden = true;
+      els.results.textContent = '';
+      return;
+    }
+
+    var pct = sc.total ? Math.round((sc.correct / sc.total) * 100) : 0;
+
+    var missed = [];
+    for (var i = 0; i < state.quiz.length; i++) {
+      if (!state.correct[i]) {
+        var it = state.quiz[i];
+        var chosen = state.answers[i];
+        missed.push({
+          i: i,
+          q: it.q,
+          chosen: chosen === null ? '(unanswered)' : it.options[chosen],
+          correct: it.options[it.answer],
+          explain: it.explain
+        });
+      }
+    }
+
+    els.results.textContent = '';
+    els.results.hidden = false;
+
+    var h2 = document.createElement('h2');
+    h2.textContent = 'Results';
+    els.results.appendChild(h2);
+
+    var scorePill = document.createElement('div');
+    scorePill.className = 'pill';
+    scorePill.style.marginBottom = '10px';
+    scorePill.textContent = 'Final score: ' + sc.correct + '/' + sc.total + ' (' + pct + '%)';
+    els.results.appendChild(scorePill);
+
+    var missedDiv = document.createElement('div');
+    missedDiv.className = 'missed';
+
+    if (missed.length) {
+      missed.forEach(function(m) {
+        var item = document.createElement('div');
+        item.className = 'item';
+
+        var qDiv = document.createElement('div');
+        var qStrong = document.createElement('strong');
+        qStrong.textContent = 'Q' + (m.i + 1) + '. ';
+        qDiv.appendChild(qStrong);
+        qDiv.appendChild(document.createTextNode(m.q));
+        item.appendChild(qDiv);
+
+        var yourDiv = document.createElement('div');
+        yourDiv.className = 'small';
+        yourDiv.textContent = 'Your answer: ' + m.chosen;
+        item.appendChild(yourDiv);
+
+        var correctDiv = document.createElement('div');
+        correctDiv.className = 'small';
+        correctDiv.textContent = 'Correct: ' + m.correct;
+        item.appendChild(correctDiv);
+
+        var explDiv = document.createElement('div');
+        explDiv.className = 'small';
+        explDiv.textContent = m.explain;
+        item.appendChild(explDiv);
+
+        missedDiv.appendChild(item);
+      });
+    } else {
+      var perfectDiv = document.createElement('div');
+      perfectDiv.className = 'item';
+      var perfectStrong = document.createElement('strong');
+      perfectStrong.textContent = 'Nice.';
+      perfectDiv.appendChild(perfectStrong);
+      perfectDiv.appendChild(document.createTextNode(' You got everything correct.'));
+      missedDiv.appendChild(perfectDiv);
+    }
+
+    els.results.appendChild(missedDiv);
+  }
+
+  function render() {
+    var item = state.quiz[state.idx];
+    if (!item) return;
+
+    els.qText.textContent = 'Q' + (state.idx + 1) + '. ' + item.q;
+
+    // Render diagram (hardcoded trusted content only)
+    if (item.diagram) {
+      els.diagramArea.innerHTML = item.diagram();  // trusted static content
+    } else {
+      els.diagramArea.textContent = '';
+    }
+
+    els.opts.textContent = '';
+    var chosen = state.answers[state.idx];
+
+    item.options.forEach(function(optText, optIdx) {
+      var btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.type = 'button';
+      btn.textContent = optText;
+
+      var alreadyAnswered = chosen !== null;
+
+      if (alreadyAnswered) {
+        btn.disabled = true;
+        if (optIdx === item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--good) 55%, var(--border) 45%)';
+        }
+        if (optIdx === chosen && optIdx !== item.answer) {
+          btn.style.borderColor = 'color-mix(in srgb, var(--bad) 55%, var(--border) 45%)';
+        }
+      }
+
+      btn.addEventListener('click', function() {
+        if (state.answers[state.idx] !== null) return;
+
+        state.answers[state.idx] = optIdx;
+        state.correct[state.idx] = (optIdx === item.answer);
+
+        if (els.instantToggle.checked) {
+          showFeedback(optIdx);
+        } else {
+          hideFeedback();
+        }
+
+        render();
+        updateHeader();
+        updateNav();
+        maybeShowResults();
+      });
+
+      els.opts.appendChild(btn);
+    });
+
+    if (chosen === null) {
+      hideFeedback();
+    } else {
+      if (els.instantToggle.checked) {
+        showFeedback(chosen);
+      } else {
+        els.feedback.className = 'feedback';
+        els.feedback.textContent = '';
+        var explainDiv = document.createElement('div');
+        explainDiv.className = 'explain';
+        explainDiv.textContent = item.explain;
+        els.feedback.appendChild(explainDiv);
+        els.feedback.hidden = false;
+      }
+    }
+
+    setModeBadge();
+    updateHeader();
+    updateNav();
+    maybeShowResults();
+  }
+
+  // Navigation
+  els.prevBtn.addEventListener('click', function() {
+    if (state.idx > 0) {
+      state.idx--;
+      render();
+    }
+  });
+
+  els.nextBtn.addEventListener('click', function() {
+    if (state.idx < state.quiz.length - 1) {
+      state.idx++;
+      render();
+    }
+  });
+
+  els.restartBtn.addEventListener('click', function() {
+    buildQuiz(els.shuffleToggle.checked);
+  });
+
+  els.shuffleToggle.addEventListener('change', function() {
+    setModeBadge();
+  });
+
+  els.instantToggle.addEventListener('change', function() {
+    render();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') els.prevBtn.click();
+    if (e.key === 'ArrowRight') els.nextBtn.click();
+    if (e.key === 'r' || e.key === 'R') els.restartBtn.click();
+  });
+
+  buildQuiz(false);
+})();
+</script>
+
+</body>
+</html>
